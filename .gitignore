@@ -6,10 +6,13 @@ dist/
 build/
 .cache/
 
-# Environment variables
+# Environment variables & API Keys
 .env
 .env.local
 .env.*.local
+KeyPrototipoRutas.txt
+KeyPrototipo*.txt
+*.key
 
 # OS / Editor files
 .DS_Store
