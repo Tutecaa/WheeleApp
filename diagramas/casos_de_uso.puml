@@ -1,0 +1,95 @@
+# Diagrama de Casos de Uso - WHEEL-E (PlantUML)
+
+A continuación se especifica el diagrama de casos de uso del sistema **WHEEL-E** en sintaxis PlantUML, modelando la interacción de los actores con los casos de uso principales (RF1 a RF16).
+
+```plantuml
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+' --- ACTORES ---
+actor "Pasajero" as pas
+actor "Conductor" as cond
+actor "Administrador" as admin
+actor "Servicio Externo de Rutas" as apiRutas
+
+' --- HERENCIA / INCLUSIÓN DE ROLES ---
+' Un Conductor posee todas las funcionalidades del Pasajero/Usuario base
+cond --|> pas
+
+' --- SISTEMA WHEEL-E ---
+rectangle "Sistema WHEEL-E" {
+
+    package "Módulo 1: Autenticación e Identidad (RF1, RF2, RF14)" {
+        usecase "CU1: Registrar cuenta institucional" as CU1
+        usecase "CU2: Iniciar sesión y recuperar acceso" as CU2
+        usecase "CU14: Consultar perfil público" as CU14
+    }
+
+    package "Módulo 2: Gestión de Vehículos (RF3, RF16)" {
+        usecase "CU3: Registrar vehículo y solicitar habilitación" as CU3
+        usecase "CU16: Verificar documentos y habilitar conductor" as CU16
+    }
+
+    package "Módulo 3: Gestión de Viajes y Rutas (RF4 - RF9)" {
+        usecase "CU4: Publicar un viaje" as CU4
+        usecase "CU5: Obtener trazado de la ruta" as CU5
+        usecase "CU6: Modificar o cancelar viaje" as CU6
+        usecase "CU7: Consultar viajes propios" as CU7
+        usecase "CU8: Buscar viajes por proximidad" as CU8
+        usecase "CU9: Consultar detalle de viaje" as CU9
+    }
+
+    package "Módulo 4: Reservas y Cupos (RF10, RF11, RF12)" {
+        usecase "CU10: Solicitar cupo" as CU10
+        usecase "CU11: Gestionar solicitudes recibidas" as CU11
+        usecase "CU12: Cancelar solicitud o reserva" as CU12
+    }
+
+    package "Módulo 5: Interacción y Notificaciones (RF13, RF15)" {
+        usecase "CU13: Calificar participantes" as CU13
+        usecase "CU15: Notificar eventos del viaje" as CU15
+    }
+}
+
+' --- RELACIONES PASAJERO ---
+pas --> CU1
+pas --> CU2
+pas --> CU7
+pas --> CU8
+pas --> CU9
+pas --> CU10
+pas --> CU12
+pas --> CU13
+pas --> CU14
+
+' --- RELACIONES CONDUCTOR ---
+cond --> CU3
+cond --> CU4
+cond --> CU6
+cond --> CU11
+
+' --- RELACIONES ADMINISTRADOR ---
+admin --> CU2
+admin --> CU16
+
+' --- RELACIONES CON SERVICIOS EXTERNOS ---
+CU5 --> apiRutas
+
+' --- INCLUDES Y EXTENDS ---
+CU4 ..> CU5 : <<include>>
+CU10 ..> CU15 : <<include>>
+CU11 ..> CU15 : <<include>>
+CU12 ..> CU15 : <<include>>
+CU6 ..> CU15 : <<include>>
+
+@enduml
+```
+
+## Descripción de Módulos
+
+1. **Autenticación e Identidad:** Registro restringido a dominio `@uis.edu.co`, inicio de sesión con roles y consulta de perfil público.
+2. **Gestión de Vehículos:** Carga de documentos vehiculares (SOAT, RTM, Licencia) y validación administrativa.
+3. **Gestión de Viajes y Rutas:** Publicación con llamada al servicio de rutas externo y búsqueda por distancia de proximidad al trazado.
+4. **Reservas y Cupos:** Solicitud, aceptación/rechazo, descuento automático de cupos y cancelación.
+5. **Interacción y Notificaciones:** Valoración bidireccional en escala 1-5 estrellas y alertas automáticas por eventos.
