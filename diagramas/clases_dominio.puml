@@ -1,0 +1,150 @@
+@startuml clases_dominio
+skinparam classAttributeIconSize 0
+skinparam shadowing true
+
+enum RolUsuario {
+    PASAJERO
+    CONDUCTOR
+    ADMINISTRADOR
+}
+
+enum EstadoUsuario {
+    PENDIENTE_VERIFICACION
+    ACTIVO
+    SUSPENDIDO
+}
+
+enum EstadoHabilitacion {
+    PENDIENTE
+    APROBADO
+    RECHAZADO
+}
+
+enum EstadoViaje {
+    PROGRAMADO
+    EN_CURSO
+    FINALIZADO
+    CANCELADO
+}
+
+enum EstadoSolicitud {
+    PENDIENTE
+    ACEPTADA
+    RECHAZADA
+    CANCELADA
+}
+
+class Usuario {
+    - id: String
+    - nombreCompleto: String
+    - codigoEstudiantil: String
+    - correoInstitucional: String
+    - contrasenaHash: String
+    - rol: RolUsuario
+    - estado: EstadoUsuario
+    - promedioCalificacion: Float
+    - totalViajesRealizados: Integer
+    + registrarCuenta(): Boolean
+    + iniciarSesion(): String
+    + actualizarPerfil(): Void
+}
+
+class Vehiculo {
+    - id: String
+    - conductorId: String
+    - placa: String
+    - marca: String
+    - linea: String
+    - modelo: Integer
+    - color: String
+    - numeroPuestos: Integer
+    - estadoHabilitacion: EstadoHabilitacion
+    - fechaRevision: Date
+    + registrarVehiculo(): Void
+    + solicitarHabilitacion(): Void
+}
+
+class DocumentoVehiculo {
+    - id: String
+    - vehiculoId: String
+    - tipoDocumento: String
+    - urlImagen: String
+    - fechaVencimiento: Date
+    - esValido: Boolean
+}
+
+class Viaje {
+    - id: String
+    - conductorId: String
+    - vehiculoId: String
+    - fechaHoraSalida: DateTime
+    - cuposTotales: Integer
+    - cuposDisponibles: Integer
+    - aporteSugerido: Float
+    - estado: EstadoViaje
+    + publicarViaje(): Void
+    + cancelarViaje(motivo: String): Void
+    + actualizarCupos(delta: Integer): Void
+}
+
+class Ubicacion {
+    - latitud: Double
+    - longitud: Double
+    - nombreLugar: String
+    - direccion: String
+}
+
+class PolilineaRuta {
+    - id: String
+    - viajeId: String
+    - puntosCoordenadas: List<Ubicacion>
+    - distanciaMetros: Double
+    - tiempoEstimadoMinutos: Integer
+    + calcularDistanciaAProximidad(puntoPasajero: Ubicacion): Double
+}
+
+class SolicitudCupo {
+    - id: String
+    - viajeId: String
+    - pasajeroId: String
+    - puntoRecogida: Ubicacion
+    - distanciaProximidadMetros: Double
+    - estado: EstadoSolicitud
+    - fechaSolicitud: DateTime
+    + responderSolicitud(aceptar: Boolean): Void
+    + cancelarSolicitud(): Void
+}
+
+class Calificacion {
+    - id: String
+    - viajeId: String
+    - evaluadorId: String
+    - evaluadoId: String
+    - estrellas: Integer
+    - comentario: String
+    - fechaCreacion: DateTime
+    + registrarEvaluacion(): Void
+}
+
+class ChatMensaje {
+    - id: String
+    - viajeId: String
+    - emisorId: String
+    - contenido: String
+    - timestamp: DateTime
+}
+
+Usuario "1" -- "0..*" Vehiculo : posee >
+Vehiculo "1" *-- "1..*" DocumentoVehiculo : contiene >
+Usuario "1" -- "0..*" Viaje : publica >
+Viaje "1" *-- "2" Ubicacion : origen / destino >
+Viaje "1" *-- "1" PolilineaRuta : posee trazado >
+Viaje "1" -- "0..*" SolicitudCupo : recibe >
+Usuario "1" -- "0..*" SolicitudCupo : realiza >
+SolicitudCupo "1" *-- "1" Ubicacion : punto recogida >
+Viaje "1" -- "0..*" Calificacion : genera >
+Usuario "1" -- "0..*" Calificacion : recibe/emite >
+Viaje "1" -- "0..*" ChatMensaje : centraliza >
+Usuario "1" -- "0..*" ChatMensaje : escribe >
+
+@enduml

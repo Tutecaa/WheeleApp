@@ -1,0 +1,78 @@
+@startuml actividades_flujo_viaje
+skinparam ConditionEndStyle hline
+
+|Conductor|
+start
+:Selecciona "Publicar Viaje";
+:Define Punto Origen y Destino;
+
+|Sistema WHEEL-E|
+:Consulta OpenRouteService API;
+:Genera polilinea y calcula distancia/tiempo;
+:Despliega ruta optima en el mapa;
+
+|Conductor|
+if (Acepta el trazado generado?) then (Si)
+  :Ingresa Fecha, Hora de Salida y Cupos;
+  :Establece Aporte Sugerido;
+  :Presiona "Publicar";
+else (No)
+  :Ajusta puntos intermedios / paradas;
+  stop
+endif
+
+|Sistema WHEEL-E|
+:Guarda Viaje y Polilinea Espacial en BD;
+:Publica oferta en catalogo de busquedas;
+
+|Pasajero|
+:Ingresa a la App y activa GPS;
+:Define su punto de recogida deseado;
+
+|Sistema WHEEL-E|
+:Ejecuta algoritmo de distancia Punto a Polilinea;
+if (Existe ruta con distancia <= Radio Tolerancia?) then (Si)
+  :Muestra tarjetas de viajes compatibles;
+else (No)
+  :Informa "No se encontraron viajes cercanos";
+  stop
+endif
+
+|Pasajero|
+:Selecciona conductor y presiona "Solicitar Cupo";
+
+|Conductor|
+:Recibe notificacion de solicitud;
+if (Decide Aceptar al Pasajero?) then (Si)
+  :Presiona "Aceptar";
+  |Sistema WHEEL-E|
+  :Descuenta 1 cupo disponible;
+  :Agrega pasajero a la sala de chat del viaje;
+  :Notifica "Cupo Confirmado" al pasajero;
+else (No)
+  :Presiona "Rechazar";
+  |Sistema WHEEL-E|
+  :Notifica "Solicitud Rechazada" al pasajero;
+  stop
+endif
+
+|Conductor|
+:Inicia el viaje a la hora programada;
+:Recoge a los pasajeros en los puntos acordados;
+:Arriba al destino (Campus UIS);
+:Presiona "Finalizar Viaje";
+
+|Sistema WHEEL-E|
+:Marca estado del viaje como FINALIZADO;
+:Dispara modal de Calificacion Bidireccional;
+
+|Pasajero|
+:Evalua al Conductor (1 - 5 estrellas);
+
+|Conductor|
+:Evalua a los Pasajeros (1 - 5 estrellas);
+
+|Sistema WHEEL-E|
+:Recalcula promedio de reputacion de los participantes;
+stop
+@enduml

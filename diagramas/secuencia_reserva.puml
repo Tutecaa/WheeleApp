@@ -1,0 +1,44 @@
+@startuml secuencia_reserva
+autonumber
+actor "Pasajero" as P
+participant "App Movil (UI)" as UI
+participant "API Gateway" as GW
+participant "Servicio de Busqueda" as BS
+participant "Engine PostGIS" as DB
+participant "Servicio Notificaciones" as NS
+actor "Conductor" as C
+
+== Busqueda de Viajes por Proximidad ==
+P -> UI: Ingresa origen, destino y franja horaria
+UI -> GW: GET /api/v1/trips/search?lat=...&lng=...&radius=500
+GW -> BS: buscarViajesCercanos(coordsPasajero, radio)
+BS -> DB: ST_DWithin(trazado_polyline, coordsPasajero, 500m)
+DB --> BS: Retorna lista de viajes coincidentes
+BS --> GW: Array de Viajes + Distancia perpendicular
+GW --> UI: Despliega tarjetas de viajes ordenados por cercania
+
+== Solicitud de Cupo ==
+P -> UI: Selecciona viaje y presiona "Pedir Cupo"
+UI -> GW: POST /api/v1/trips/{viajeId}/requests
+GW -> BS: crearSolicitud(viajeId, pasajeroId, coordsRecogida)
+BS -> DB: INSERT INTO solicitudes (estado = 'PENDIENTE')
+DB --> BS: Solicitud Creada (ID)
+BS -> NS: notificarNuevaSolicitud(conductorId, pasajeroNombre)
+NS -> C: Notification Push "Nueva solicitud de cupo"
+BS --> GW: 201 Created (Solicitud Pendiente)
+GW --> UI: Muestra "Esperando respuesta del conductor..."
+
+== Aprobacion por Conductor ==
+C -> NS: Abre notificacion de la app
+NS -> C: Muestra perfil de pasajero y distancia de recogida
+C -> UI: Presiona "Aceptar Pasajero"
+UI -> GW: PATCH /api/v1/requests/{reqId} { estado: "ACEPTADA" }
+GW -> BS: procesarAceptacion(reqId)
+BS -> DB: UPDATE solicitudes SET estado = 'ACEPTADA'
+BS -> DB: UPDATE viajes SET cupos_disponibles = cupos_disponibles - 1
+BS -> NS: notificarSolicitudAceptada(pasajeroId)
+NS -> P: Notification Push "Cupo Aceptado por el Conductor"
+BS --> GW: 200 OK (Pasajero incorporado al viaje)
+GW --> C: Actualiza UI con cupos restantes y anade al chat
+
+@enduml
