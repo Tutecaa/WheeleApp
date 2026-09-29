@@ -1,7 +1,7 @@
 @startuml casos_de_uso
 left to right direction
 skinparam packageStyle rectangle
-skinparam shadowing true
+skinparam shadowing false
 
 actor "Pasajero UIS" as pas
 actor "Conductor Habilitado" as cond
