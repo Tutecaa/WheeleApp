@@ -88,6 +88,18 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY
 La clave `service_role` nunca debe enviarse a la aplicación móvil ni
 almacenarse en el repositorio.
 
+Para probar el flujo de autenticación localmente:
+
+1. Copia `.env.example` como `.env`.
+2. Completa la URL y la clave `anon` del proyecto Supabase.
+3. En Supabase Auth, habilita la confirmación por correo.
+4. Añade `http://localhost:8081/auth/callback` y `wheele://auth/callback`
+   a las URL de redirección permitidas.
+5. Ejecuta `npm run web:stable` y reinicia Expo después de cambiar `.env`.
+
+La clave `anon` es pública y está diseñada para el cliente; la clave
+`service_role` es privada y no debe compartirse.
+
 ## Criterios de aceptación técnicos
 
 - Una instalación limpia puede ejecutar la aplicación con `npm install` y
