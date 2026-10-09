@@ -37,6 +37,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "web:stable": "set NODE_OPTIONS=--max-old-space-size=4096&& expo start --web --port 8081 --clear",
     "lint": "expo lint"
   },
   "private": true
