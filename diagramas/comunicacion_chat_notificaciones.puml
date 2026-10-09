@@ -1,0 +1,20 @@
+@startuml comunicacion_chat_notificaciones
+skinparam object {
+    BackgroundColor LightPink
+    BorderColor Red
+}
+
+object ":ConductorApp" as CA
+object ":WebSocketGateway" as WSG
+object ":ChatService" as CS
+object ":NotificationService" as NS
+object ":PasajeroApp" as PA
+
+CA -> WSG : 1: enviarMensajeChat(viajeId, texto)
+WSG -> CS : 2: procesarYGuardarMensaje(viajeId, emisorId, texto)
+CS -> WSG : 3: emitirEventoNuevoMensaje(viajeId, payload)
+WSG -> PA : 4: pushMensajeEnVivo(payload)
+CS -> NS : 5: dispararAlertaSegundoPlanoIfOffline(pasajeroId)
+NS -> PA : 6: enviarPushFCM("Nuevo mensaje en tu viaje")
+
+@enduml

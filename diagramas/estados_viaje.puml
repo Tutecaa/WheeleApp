@@ -1,0 +1,24 @@
+@startuml estados_viaje
+skinparam state {
+    BackgroundColor LightYellow
+    BorderColor DarkOrange
+}
+
+[*] --> PROGRAMADO : Conductor publica viaje [cupos > 0]
+
+state PROGRAMADO {
+    [*] --> CuposDisponibles
+    CuposDisponibles --> CuposAgotados : Solicitud aceptada [cupos_libres == 0]
+    CuposAgotados --> CuposDisponibles : Pasajero cancela cupo [cupos_libres > 0]
+}
+
+PROGRAMADO --> EN_CURSO : Conductor inicia viaje a la hora fijada
+PROGRAMADO --> CANCELADO : Conductor cancela viaje (Motivo registrado)
+
+EN_CURSO --> FINALIZADO : Vehiculo llega al destino (UIS)
+EN_CURSO --> CANCELADO : Incidencia durante el trayecto
+
+FINALIZADO --> [*] : Se habilitan calificaciones bidireccionales
+CANCELADO --> [*] : Se liberan reservas y notifica a pasajeros
+
+@enduml

@@ -1,0 +1,51 @@
+@startuml despliegue_arquitectura
+node "Dispositivo Movil Usuario" <<Device>> {
+    component "App WHEEL-E (Android/iOS)" as App
+}
+
+node "Dispositivo Movil Conductor" <<Device>> {
+    component "App WHEEL-E (Conductor UI)" as AppCond
+}
+
+node "Infraestructura Cloud (AWS / GCP)" {
+    
+    node "Load Balancer Node" <<Server>> {
+        component "Nginx SSL / TLS" as LB
+    }
+    
+    node "App Server Cluster (Docker Nodes)" <<Kubernetes>> {
+        component "Backend App Instance 1" as App1
+        component "Backend App Instance 2" as App2
+        component "WebSocket Server (Socket.io)" as WSServer
+    }
+
+    node "Database Primary Server" <<Database>> {
+        database "PostgreSQL 16 + PostGIS 3.4" as PrimaryDB
+    }
+
+    node "In-Memory Cache Server" <<Cache>> {
+        database "Redis Cluster (Cache y Sessions)" as RedisNode
+    }
+}
+
+cloud "Servicios Externos SaaS" {
+    node "OpenRouteService API" as ExtORS
+    node "Firebase Cloud Messaging" as ExtFCM
+}
+
+App --> LB : HTTPS / WSS
+AppCond --> LB : HTTPS / WSS
+
+LB --> App1 : Round Robin
+LB --> App2 : Round Robin
+LB --> WSServer : WebSocket Protocol
+
+App1 --> PrimaryDB : SQL Queries
+App2 --> PrimaryDB : SQL Queries
+App1 --> RedisNode : Read/Write Cache
+WSServer --> RedisNode : PubSub
+
+App1 --> ExtORS : API Calls
+App1 --> ExtFCM : Push Triggers
+
+@enduml

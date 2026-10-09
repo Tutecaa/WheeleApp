@@ -1,0 +1,71 @@
+@startuml casos_de_uso
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "Pasajero UIS" as pas
+actor "Conductor Habilitado" as cond
+actor "Administrador Plataforma" as admin
+actor "Servicio Externo de Rutas" as apiRutas
+
+cond --|> pas
+
+rectangle "Sistema WHEEL-E (Carpooling UIS)" {
+
+    package "Modulo Autenticacion e Identidad" {
+        usecase "CU1: Registrar cuenta uis.edu.co" as CU1
+        usecase "CU2: Iniciar sesion y JWT" as CU2
+        usecase "CU14: Consultar perfil publico y reputacion" as CU14
+    }
+
+    package "Modulo Vehiculos y Habilitacion" {
+        usecase "CU3: Subir documentos vehiculo" as CU3
+        usecase "CU4: Validar SOAT/RTM y habilitar conductor" as CU4
+    }
+
+    package "Modulo Gestion de Viajes y Rutas" {
+        usecase "CU5: Publicar viaje con trazado" as CU5
+        usecase "CU6: Obtener polilinea de ruta" as CU6
+        usecase "CU7: Modificar o cancelar viaje" as CU7
+        usecase "CU8: Buscar viajes por proximidad" as CU8
+        usecase "CU9: Consultar detalle de viaje" as CU9
+    }
+
+    package "Modulo Reservas y Cupos" {
+        usecase "CU10: Solicitar cupo en viaje" as CU10
+        usecase "CU11: Aceptar / Rechazar solicitud" as CU11
+        usecase "CU12: Cancelar cupo reservado" as CU12
+    }
+
+    package "Modulo Confianza y Notificaciones" {
+        usecase "CU13: Calificar participante post-viaje" as CU13
+        usecase "CU15: Chat y Notificaciones Push" as CU15
+    }
+}
+
+pas --> CU1
+pas --> CU2
+pas --> CU8
+pas --> CU9
+pas --> CU10
+pas --> CU12
+pas --> CU13
+pas --> CU14
+
+cond --> CU3
+cond --> CU5
+cond --> CU7
+cond --> CU11
+
+admin --> CU2
+admin --> CU4
+
+CU5 --> apiRutas
+CU8 --> apiRutas
+
+CU5 .> CU6 : <<include>>
+CU10 .> CU15 : <<include>>
+CU11 .> CU15 : <<include>>
+CU7 .> CU15 : <<include>>
+
+@enduml

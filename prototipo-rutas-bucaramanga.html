@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototipo de rutas · Carpooling Bucaramanga</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --tinta:#16211F;
+    --papel:#EDEFEA;
+    --panel:#FFFFFF;
+    --linea:#D3D8D0;
+    --suave:#6B7772;
+    --acento:#0E7C6B;
+    --alerta:#B5432E;
+    --radio:4px;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  html,body{height:100%}
+
+  body{
+    font-family:"IBM Plex Sans",system-ui,sans-serif;
+    color:var(--tinta);
+    background:var(--papel);
+    display:flex;
+    height:100%;
+    overflow:hidden;
+  }
+
+  /* ---------- Panel lateral ---------- */
+
+  #panel{
+    width:370px;
+    flex-shrink:0;
+    background:var(--panel);
+    border-right:1px solid var(--linea);
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+  }
+
+  #panel header{
+    padding:20px 22px 16px;
+    border-bottom:1px solid var(--linea);
+  }
+
+  #panel header h1{
+    font-family:"Archivo",sans-serif;
+    font-weight:700;
+    font-size:19px;
+    letter-spacing:-.02em;
+    line-height:1.15;
+  }
+
+  #panel header p{
+    margin-top:6px;
+    font-size:12.5px;
+    color:var(--suave);
+    line-height:1.5;
+  }
+
+  .bloque{
+    padding:18px 22px;
+    border-bottom:1px solid var(--linea);
+  }
+
+  .rotulo{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:10.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--suave);
+    display:block;
+    margin-bottom:9px;
+  }
+
+  input[type=text],input[type=password],input[type=time]{
+    width:100%;
+    padding:8px 10px;
+    border:1px solid var(--linea);
+    border-radius:var(--radio);
+    font-family:inherit;
+    font-size:13.5px;
+    color:var(--tinta);
+    background:#FBFCFA;
+  }
+
+  input:focus-visible,button:focus-visible,select:focus-visible{
+    outline:2px solid var(--acento);
+    outline-offset:1px;
+  }
+
+  .fila{display:flex;gap:8px}
+  .fila > *{flex:1}
+
+  button{
+    font-family:inherit;
+    font-size:13px;
+    font-weight:600;
+    padding:9px 12px;
+    border:1px solid var(--tinta);
+    border-radius:var(--radio);
+    background:var(--tinta);
+    color:#fff;
+    cursor:pointer;
+    transition:opacity .15s ease;
+  }
+  button:hover:not(:disabled){opacity:.82}
+  button:disabled{opacity:.35;cursor:not-allowed}
+
+  button.secundario{
+    background:transparent;
+    color:var(--tinta);
+    border-color:var(--linea);
+  }
+
+  .ayuda{
+    font-size:12px;
+    color:var(--suave);
+    line-height:1.55;
+    margin-top:9px;
+  }
+
+  .ayuda a{color:var(--acento)}
+
+  /* ---------- Pestañas ---------- */
+
+  #modos{
+    display:flex;
+    border-bottom:1px solid var(--linea);
+  }
+
+  #modos button{
+    flex:1;
+    border:none;
+    border-radius:0;
+    background:transparent;
+    color:var(--suave);
+    padding:13px 0;
+    font-size:13px;
+    border-bottom:2px solid transparent;
+  }
+
+  #modos button[aria-selected="true"]{
+    color:var(--tinta);
+    border-bottom-color:var(--acento);
+  }
+
+  .oculto{display:none !important}
+
+  /* ---------- Lista de rutas ---------- */
+
+  .ruta{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:11px 0;
+    border-bottom:1px solid var(--linea);
+    font-size:13px;
+  }
+  .ruta:last-child{border-bottom:none}
+
+  .muestra{
+    width:11px;height:11px;
+    border-radius:50%;
+    flex-shrink:0;
+    margin-top:4px;
+  }
+
+  .ruta .datos{flex:1;line-height:1.45}
+  .ruta .datos strong{font-weight:600}
+  .ruta .datos span{display:block;color:var(--suave);font-size:11.5px;margin-top:2px}
+
+  .ruta .quitar{
+    background:none;border:none;color:var(--suave);
+    font-size:16px;padding:0 4px;line-height:1;
+  }
+  .ruta .quitar:hover{color:var(--alerta);opacity:1}
+
+  .vacio{
+    font-size:12.5px;
+    color:var(--suave);
+    line-height:1.55;
+    padding:6px 0;
+  }
+
+  /* ---------- Resultados de búsqueda ---------- */
+
+  .resultado{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:11px 0;
+    border-bottom:1px solid var(--linea);
+    font-size:13px;
+    cursor:pointer;
+  }
+  .resultado:last-child{border-bottom:none}
+  .resultado:hover strong{text-decoration:underline}
+
+  .resultado .metros{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12.5px;
+    font-weight:500;
+  }
+  .sirve .metros{color:var(--acento)}
+  .nosirve{opacity:.5}
+  .nosirve .metros{color:var(--suave)}
+
+  #radio-valor{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12.5px;
+    color:var(--acento);
+  }
+
+  input[type=range]{width:100%;accent-color:var(--acento)}
+
+  #estado{
+    padding:10px 22px;
+    font-size:12.5px;
+    line-height:1.5;
+    background:#F6F8F4;
+    border-bottom:1px solid var(--linea);
+    color:var(--suave);
+  }
+  #estado.error{background:#FBF0ED;color:var(--alerta)}
+
+  /* ---------- Mapa ---------- */
+
+  #mapa{flex:1;height:100%}
+
+  .marca-num{
+    background:var(--tinta);
+    color:#fff;
+    width:22px;height:22px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11px;
+    border:2px solid #fff;
+  }
+
+  .marca-casa{
+    background:var(--alerta);
+    width:16px;height:16px;
+    border-radius:50%;
+    border:3px solid #fff;
+    box-shadow:0 0 0 1px var(--alerta);
+  }
+
+  @media (max-width:820px){
+    body{flex-direction:column}
+    #panel{width:100%;height:52%;border-right:none;border-bottom:1px solid var(--linea)}
+    #mapa{height:48%}
+  }
+</style>
+</head>
+<body>
+
+<aside id="panel">
+  <header>
+    <h1>Prototipo de rutas compartidas</h1>
+    <p>Leaflet + OpenStreetMap para dibujar, OpenRouteService para trazar por calles, y cálculo propio de proximidad.</p>
+  </header>
+
+  <div class="bloque">
+    <label class="rotulo" for="llave">Llave de OpenRouteService</label>
+    <input type="password" id="llave" placeholder="Pega aquí tu API key" autocomplete="off">
+    <p class="ayuda">
+      Sin llave el prototipo dibuja líneas rectas. Con llave, el trazo sigue las calles reales.
+      Consíguela gratis en <a href="https://openrouteservice.org/dev/#/signup" target="_blank" rel="noopener">openrouteservice.org</a>.
+    </p>
+  </div>
+
+  <nav id="modos">
+    <button id="tab-crear" aria-selected="true">1 · Crear rutas</button>
+    <button id="tab-buscar" aria-selected="false">2 · Buscar cercanía</button>
+  </nav>
+
+  <div id="estado">Haz clic en el mapa para marcar el origen del viaje.</div>
+
+  <!-- MODO CREAR -->
+  <section id="vista-crear">
+    <div class="bloque">
+      <span class="rotulo">Puntos del viaje</span>
+      <p class="ayuda" id="conteo-puntos" style="margin-top:0">Ningún punto marcado.</p>
+      <div class="fila" style="margin-top:12px">
+        <button id="btn-trazar" disabled>Trazar ruta</button>
+        <button id="btn-limpiar" class="secundario">Borrar puntos</button>
+      </div>
+      <p class="ayuda">
+        Primer clic: origen. Últi&shy;mo: destino. Los clics intermedios son paradas.
+      </p>
+    </div>
+
+    <div class="bloque">
+      <span class="rotulo">Datos del viaje</span>
+      <input type="text" id="nombre-ruta" placeholder="Ej. Cañaveral → campus" maxlength="40">
+      <div style="margin-top:8px">
+        <input type="time" id="hora-ruta" value="06:30">
+      </div>
+    </div>
+
+    <div class="bloque">
+      <span class="rotulo">Rutas guardadas</span>
+      <div id="lista-rutas"><p class="vacio">Todavía no hay rutas. Traza la primera y aparecerá aquí.</p></div>
+    </div>
+  </section>
+
+  <!-- MODO BUSCAR -->
+  <section id="vista-buscar" class="oculto">
+    <div class="bloque">
+      <span class="rotulo">Punto de partida del pasajero</span>
+      <p class="ayuda" style="margin-top:0" id="estado-casa">Haz clic en el mapa para marcar dónde vive.</p>
+      <button id="btn-quitar-casa" class="secundario" style="margin-top:12px" disabled>Quitar marcador</button>
+    </div>
+
+    <div class="bloque">
+      <span class="rotulo">Distancia máxima aceptable · <span id="radio-valor">500 m</span></span>
+      <input type="range" id="radio" min="100" max="2000" step="50" value="500">
+    </div>
+
+    <div class="bloque">
+      <span class="rotulo">Rutas evaluadas</span>
+      <div id="resultados"><p class="vacio">Marca un punto para medir su distancia a cada ruta guardada.</p></div>
+    </div>
+  </section>
+</aside>
+
+<div id="mapa"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ============ Estado ============ */
+
+  const PALETA = ["#0E7C6B","#B5432E","#4C5FA8","#8A6D1F","#7A3E8F","#2E7BB5"];
+  let rutas = [];          // {id,nombre,hora,coords,color,capa}
+  let puntos = [];         // puntos marcados para la ruta en construcción
+  let marcasPunto = [];
+  let casa = null;
+  let marcaCasa = null;
+  let capaConexion = null;
+  let contador = 0;
+
+  /* ============ Mapa ============ */
+
+  const mapa = L.map("mapa").setView([7.1193, -73.1227], 13);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(mapa);
+
+  /* ============ Utilidades de interfaz ============ */
+
+  const $ = (id) => document.getElementById(id);
+
+  function decir(texto, esError){
+    const caja = $("estado");
+    caja.textContent = texto;
+    caja.classList.toggle("error", !!esError);
+  }
+
+  function modoActual(){
+    return $("tab-crear").getAttribute("aria-selected") === "true" ? "crear" : "buscar";
+  }
+
+  /* ============ Geometría: distancia de un punto a una polilínea ============
+     Proyectamos a metros con una aproximación plana local (válida en una ciudad)
+     y medimos la distancia perpendicular a cada segmento.                      */
+
+  function factores(lat){
+    return { x: 111320 * Math.cos(lat * Math.PI / 180), y: 110540 };
+  }
+
+  function distanciaASegmento(p, a, b, f){
+    const px = p[1]*f.x, py = p[0]*f.y;
+    const ax = a[1]*f.x, ay = a[0]*f.y;
+    const bx = b[1]*f.x, by = b[0]*f.y;
+    const dx = bx-ax, dy = by-ay;
+    const largo2 = dx*dx + dy*dy;
+    let t = largo2 === 0 ? 0 : ((px-ax)*dx + (py-ay)*dy) / largo2;
+    t = Math.max(0, Math.min(1, t));
+    const cx = ax + t*dx, cy = ay + t*dy;
+    return { d: Math.hypot(px-cx, py-cy), punto: [cy/f.y, cx/f.x] };
+  }
+
+  function distanciaARuta(p, coords){
+    const f = factores(p[0]);
+    let mejor = { d: Infinity, punto: null };
+    for (let i = 0; i < coords.length - 1; i++){
+      const r = distanciaASegmento(p, coords[i], coords[i+1], f);
+      if (r.d < mejor.d) mejor = r;
+    }
+    return mejor;
+  }
+
+  /* ============ Trazado de rutas ============ */
+
+  async function pedirRutaPorCalles(pts, llave){
+    const cuerpo = { coordinates: pts.map(p => [p[1], p[0]]) };
+    const resp = await fetch("https://api.openrouteservice.org/v2/directions/driving-car/geojson", {
+      method: "POST",
+      headers: { "Authorization": llave, "Content-Type": "application/json" },
+      body: JSON.stringify(cuerpo)
+    });
+    if (!resp.ok){
+      const detalle = await resp.text();
+      throw new Error(resp.status === 403 || resp.status === 401
+        ? "La llave no fue aceptada. Revisa que esté completa."
+        : "OpenRouteService respondió " + resp.status + ". " + detalle.slice(0,120));
+    }
+    const datos = await resp.json();
+    return datos.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+  }
+
+  async function trazar(){
+    const llave = $("llave").value.trim();
+    const btn = $("btn-trazar");
+    btn.disabled = true;
+
+    let coords;
+    try {
+      if (llave){
+        decir("Consultando la ruta por calles…");
+        coords = await pedirRutaPorCalles(puntos, llave);
+      } else {
+        coords = puntos.slice();
+        decir("Ruta dibujada en línea recta (sin llave de OpenRouteService).");
+      }
+    } catch (e){
+      decir(e.message, true);
+      btn.disabled = false;
+      return;
+    }
+
+    const color = PALETA[contador % PALETA.length];
+    const nombre = $("nombre-ruta").value.trim() || ("Viaje " + (contador + 1));
+    const hora = $("hora-ruta").value || "—";
+
+    const capa = L.polyline(coords, { color, weight: 5, opacity: .8 }).addTo(mapa);
+    capa.bindTooltip(nombre + " · " + hora);
+
+    rutas.push({ id: ++contador, nombre, hora, coords, color, capa });
+
+    marcasPunto.forEach(m => mapa.removeLayer(m));
+    marcasPunto = [];
+    puntos = [];
+
+    $("nombre-ruta").value = "";
+    actualizarPuntos();
+    pintarListaRutas();
+    if (llave) decir("Ruta trazada por calles y guardada.");
+    mapa.fitBounds(capa.getBounds(), { padding: [40,40] });
+  }
+
+  /* ============ Interacción con el mapa ============ */
+
+  mapa.on("click", (e) => {
+    const p = [e.latlng.lat, e.latlng.lng];
+    if (modoActual() === "crear") agregarPunto(p);
+    else ponerCasa(p);
+  });
+
+  function agregarPunto(p){
+    puntos.push(p);
+    const icono = L.divIcon({
+      className: "",
+      html: '<div class="marca-num">' + puntos.length + '</div>',
+      iconSize: [22,22],
+      iconAnchor: [11,11]
+    });
+    marcasPunto.push(L.marker(p, { icon: icono }).addTo(mapa));
+    actualizarPuntos();
+  }
+
+  function actualizarPuntos(){
+    const n = puntos.length;
+    $("btn-trazar").disabled = n < 2;
+    $("conteo-puntos").textContent =
+      n === 0 ? "Ningún punto marcado." :
+      n === 1 ? "Origen marcado. Falta el destino." :
+      n + " puntos: origen, " + (n-2) + " parada(s) y destino.";
+    if (n >= 2 && modoActual() === "crear") decir("Listo para trazar. Puedes añadir más paradas o pulsar «Trazar ruta».");
+  }
+
+  function ponerCasa(p){
+    casa = p;
+    if (marcaCasa) mapa.removeLayer(marcaCasa);
+    marcaCasa = L.marker(p, {
+      icon: L.divIcon({ className:"", html:'<div class="marca-casa"></div>', iconSize:[16,16], iconAnchor:[8,8] })
+    }).addTo(mapa);
+    $("btn-quitar-casa").disabled = false;
+    $("estado-casa").textContent = "Punto marcado. Mueve el radio para ajustar el criterio.";
+    evaluar();
+  }
+
+  /* ============ Evaluación de cercanía ============ */
+
+  function evaluar(){
+    const caja = $("resultados");
+    const radio = Number($("radio").value);
+
+    if (!casa){
+      caja.innerHTML = '<p class="vacio">Marca un punto para medir su distancia a cada ruta guardada.</p>';
+      return;
+    }
+    if (!rutas.length){
+      caja.innerHTML = '<p class="vacio">No hay rutas guardadas. Vuelve a la pestaña 1 y traza al menos una.</p>';
+      return;
+    }
+
+    const medidas = rutas.map(r => {
+      const m = distanciaARuta(casa, r.coords);
+      return { ruta: r, distancia: m.d, cercano: m.punto };
+    }).sort((a,b) => a.distancia - b.distancia);
+
+    caja.innerHTML = "";
+    medidas.forEach(m => {
+      const sirve = m.distancia <= radio;
+      const fila = document.createElement("div");
+      fila.className = "resultado " + (sirve ? "sirve" : "nosirve");
+      fila.innerHTML =
+        '<span class="muestra" style="background:' + m.ruta.color + '"></span>' +
+        '<span class="datos" style="flex:1"><strong>' + m.ruta.nombre + '</strong>' +
+        '<span style="display:block;color:var(--suave);font-size:11.5px">' + m.ruta.hora + '</span></span>' +
+        '<span class="metros">' + Math.round(m.distancia) + ' m</span>';
+      fila.addEventListener("click", () => mostrarConexion(m));
+      caja.appendChild(fila);
+    });
+
+    const cuantas = medidas.filter(m => m.distancia <= radio).length;
+    decir(cuantas === 0
+      ? "Ninguna ruta pasa a menos de " + radio + " m. Prueba ampliando el radio."
+      : cuantas + " de " + rutas.length + " rutas pasan a menos de " + radio + " m.");
+
+    mostrarConexion(medidas[0]);
+  }
+
+  function mostrarConexion(m){
+    if (capaConexion) mapa.removeLayer(capaConexion);
+    capaConexion = L.polyline([casa, m.cercano], {
+      color: "#16211F", weight: 2, dashArray: "4 5", opacity: .9
+    }).addTo(mapa);
+    capaConexion.bindTooltip(Math.round(m.distancia) + " m hasta " + m.ruta.nombre).openTooltip();
+  }
+
+  /* ============ Lista de rutas ============ */
+
+  function pintarListaRutas(){
+    const caja = $("lista-rutas");
+    if (!rutas.length){
+      caja.innerHTML = '<p class="vacio">Todavía no hay rutas. Traza la primera y aparecerá aquí.</p>';
+      return;
+    }
+    caja.innerHTML = "";
+    rutas.forEach(r => {
+      const fila = document.createElement("div");
+      fila.className = "ruta";
+      fila.innerHTML =
+        '<span class="muestra" style="background:' + r.color + '"></span>' +
+        '<span class="datos"><strong>' + r.nombre + '</strong><span>' + r.hora +
+        ' · ' + r.coords.length + ' vértices</span></span>';
+      const quitar = document.createElement("button");
+      quitar.className = "quitar";
+      quitar.textContent = "×";
+      quitar.title = "Eliminar ruta";
+      quitar.addEventListener("click", () => {
+        mapa.removeLayer(r.capa);
+        rutas = rutas.filter(x => x.id !== r.id);
+        pintarListaRutas();
+        if (modoActual() === "buscar") evaluar();
+      });
+      fila.appendChild(quitar);
+      caja.appendChild(fila);
+    });
+  }
+
+  /* ============ Controles ============ */
+
+  $("btn-trazar").addEventListener("click", trazar);
+
+  $("btn-limpiar").addEventListener("click", () => {
+    marcasPunto.forEach(m => mapa.removeLayer(m));
+    marcasPunto = [];
+    puntos = [];
+    actualizarPuntos();
+    decir("Puntos borrados. Haz clic en el mapa para empezar de nuevo.");
+  });
+
+  $("btn-quitar-casa").addEventListener("click", () => {
+    if (marcaCasa) mapa.removeLayer(marcaCasa);
+    if (capaConexion) mapa.removeLayer(capaConexion);
+    marcaCasa = null; capaConexion = null; casa = null;
+    $("btn-quitar-casa").disabled = true;
+    $("estado-casa").textContent = "Haz clic en el mapa para marcar dónde vive.";
+    evaluar();
+  });
+
+  $("radio").addEventListener("input", (e) => {
+    $("radio-valor").textContent = e.target.value + " m";
+    if (casa) evaluar();
+  });
+
+  function cambiarModo(modo){
+    const crear = modo === "crear";
+    $("tab-crear").setAttribute("aria-selected", crear);
+    $("tab-buscar").setAttribute("aria-selected", !crear);
+    $("vista-crear").classList.toggle("oculto", !crear);
+    $("vista-buscar").classList.toggle("oculto", crear);
+    decir(crear
+      ? "Haz clic en el mapa para marcar los puntos del viaje."
+      : "Haz clic en el mapa para marcar dónde vive el pasajero.");
+    if (!crear) evaluar();
+  }
+
+  $("tab-crear").addEventListener("click", () => cambiarModo("crear"));
+  $("tab-buscar").addEventListener("click", () => cambiarModo("buscar"));
+
+})();
+</script>
+</body>
+</html>

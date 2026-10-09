@@ -1,0 +1,48 @@
+@startuml componentes_sistema
+skinparam componentStyle uml2
+
+package "Cliente Movil (Android / iOS)" {
+    [UI Componentes (React Native / Flutter)] as UI
+    [Modulo de Mapas y GPS Nativo] as MapNative
+    [Cliente WebSocket Chat] as WSC
+}
+
+package "Capa de API Gateway / Reverse Proxy" {
+    [Nginx / Gateway API Router] as Gateway
+}
+
+package "Backend Microservicios / Modulos Core" {
+    [Servicio Autenticacion y JWT] as AuthSvc
+    [Servicio de Rutas y Geofencing] as RouteSvc
+    [Servicio de Reservas y Cupos] as BookingSvc
+    [Servicio de Notificaciones Push] as NotifSvc
+    [Servicio Real-Time Chat (Socket.io)] as ChatSvc
+    [Servicio de Moderacion y Admin] as AdminSvc
+}
+
+package "Capa de Datos y Servicios Externos" {
+    database "PostgreSQL + Extension PostGIS" as DB
+    database "Redis (Cache y PubSub)" as Redis
+    cloud "OpenRouteService API" as ORS
+    cloud "Firebase Cloud Messaging (FCM)" as FCM
+}
+
+UI --> Gateway : HTTPS REST Calls
+MapNative --> Gateway : Consultas Geoespaciales
+WSC --> Gateway : WSS WebSockets
+
+Gateway --> AuthSvc
+Gateway --> RouteSvc
+Gateway --> BookingSvc
+Gateway --> NotifSvc
+Gateway --> ChatSvc
+Gateway --> AdminSvc
+
+RouteSvc --> ORS : Fetch Routing Polylines
+RouteSvc --> DB : Consultas Espaciales (ST_DWithin)
+BookingSvc --> DB : Transacciones de Cupos
+AuthSvc --> DB : Datos Usuarios y HASH
+ChatSvc --> Redis : PubSub Mensajes en Vivo
+NotifSvc --> FCM : Disparo Push Notifications
+
+@enduml

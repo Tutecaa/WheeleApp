@@ -1,0 +1,56 @@
+@startuml objetos_ejemplo
+skinparam object {
+    BackgroundColor LightGreen
+    BorderColor DarkGreen
+}
+
+object "u1 : Usuario" as u1 {
+    nombre = "Samuel Penilla"
+    correo = "samuel.penilla@correo.uis.edu.co"
+    rol = CONDUCTOR
+    promedioCalificacion = 4.9
+}
+
+object "v1 : Vehiculo" as v1 {
+    placa = "XYZ-123"
+    marca = "Chevrolet"
+    linea = "Onix"
+    numeroPuestos = 4
+    estadoHabilitacion = APROBADO
+}
+
+object "t1 : Viaje" as t1 {
+    origen = "Floridablanca Canaveral"
+    destino = "Campus Central UIS"
+    fechaHoraSalida = "2026-09-30 06:45 AM"
+    cuposTotales = 3
+    cuposDisponibles = 1
+    aporteSugerido = 3500
+    estado = PROGRAMADO
+}
+
+object "r1 : PolilineaRuta" as r1 {
+    distanciaMetros = 12400.0
+    tiempoEstimadoMinutos = 28
+}
+
+object "u2 : Usuario" as u2 {
+    nombre = "Julian Delgado"
+    correo = "julian.delgado@correo.uis.edu.co"
+    rol = PASAJERO
+    promedioCalificacion = 5.0
+}
+
+object "s1 : SolicitudCupo" as s1 {
+    puntoRecogida = "CC Parque Caracoli"
+    distanciaProximidadMetros = 85.0
+    estado = ACEPTADA
+}
+
+u1 -- v1 : posee
+u1 -- t1 : publica
+t1 -- r1 : contiene
+t1 -- s1 : incluye
+u2 -- s1 : solicita
+
+@enduml

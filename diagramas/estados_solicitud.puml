@@ -1,0 +1,22 @@
+@startuml estados_solicitud
+skinparam state {
+    BackgroundColor LightCyan
+    BorderColor DarkBlue
+}
+
+[*] --> PENDIENTE : Pasajero solicita cupo
+
+PENDIENTE --> ACEPTADA : Conductor aprueba [cupos_libres > 0]
+PENDIENTE --> RECHAZADA : Conductor rechaza la solicitud
+PENDIENTE --> CANCELADA : Pasajero retira la solicitud
+PENDIENTE --> EXPIRADA : Se alcanza hora de salida sin respuesta
+
+ACEPTADA --> CANCELADA : Pasajero cancela cupo antes de iniciar
+ACEPTADA --> COMPLETADA : Viaje finaliza con exito
+
+RECHAZADA --> [*]
+CANCELADA --> [*]
+EXPIRADA --> [*]
+COMPLETADA --> [*]
+
+@enduml
