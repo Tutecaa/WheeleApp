@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
-import { updatePassword } from "@/services/auth";
+import { updatePassword } from "@/services/auth.service";
+import { colores } from "@/constants/colores";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -20,6 +22,7 @@ export default function ResetPassword() {
     setIsSubmitting(true);
     try {
       await updatePassword(password);
+      // El enlace de recuperación ya inició sesión; `index` decide el destino.
       router.replace("/");
     } catch (submitError) {
       setError((submitError as Error).message);
@@ -38,7 +41,7 @@ export default function ResetPassword() {
           autoCapitalize="none"
           onChangeText={setPassword}
           placeholder="Nueva contraseña"
-          placeholderTextColor="#929C97"
+          placeholderTextColor={colores.placeholder}
           secureTextEntry
           style={styles.input}
           value={password}
@@ -47,7 +50,7 @@ export default function ResetPassword() {
           autoCapitalize="none"
           onChangeText={setConfirmation}
           placeholder="Repite la contraseña"
-          placeholderTextColor="#929C97"
+          placeholderTextColor={colores.placeholder}
           secureTextEntry
           style={styles.input}
           value={confirmation}
@@ -64,23 +67,23 @@ export default function ResetPassword() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: "#F7F9F8", flex: 1 },
+  safeArea: { backgroundColor: colores.fondo, flex: 1 },
   container: { flex: 1, justifyContent: "center", padding: 28 },
-  brand: { color: "#197B62", fontSize: 14, fontWeight: "800", letterSpacing: 2 },
-  title: { color: "#17211E", fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 10 },
-  description: { color: "#68736E", fontSize: 15, marginTop: 9 },
+  brand: { color: colores.primario, fontSize: 14, fontWeight: "800", letterSpacing: 2 },
+  title: { color: colores.titulo, fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 10 },
+  description: { color: colores.textoSecundario, fontSize: 15, marginTop: 9 },
   input: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#DCE4E0",
+    backgroundColor: colores.blanco,
+    borderColor: colores.borde,
     borderRadius: 12,
     borderWidth: 1,
-    color: "#26312D",
+    color: colores.texto,
     fontSize: 15,
     height: 52,
     marginTop: 14,
     paddingHorizontal: 15,
   },
-  error: { color: "#B33D32", fontSize: 13, lineHeight: 18, marginTop: 12 },
-  button: { alignItems: "center", backgroundColor: "#197B62", borderRadius: 12, marginTop: 20, padding: 16 },
-  buttonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
+  error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },
+  button: { alignItems: "center", backgroundColor: colores.primario, borderRadius: 12, marginTop: 20, padding: 16 },
+  buttonText: { color: colores.blanco, fontSize: 15, fontWeight: "800" },
 });

@@ -3,17 +3,18 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, router } from "expo-router";
 
-import { signUp } from "@/services/auth";
+import { signUp } from "@/services/auth.service";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { colores } from "@/constants/colores";
 
 export default function Register() {
   const [fullName, setFullName] = useState("");
@@ -54,7 +55,7 @@ export default function Register() {
             Te enviamos un enlace de confirmación. Confírmalo antes de iniciar
             sesión.
           </Text>
-          <Pressable onPress={() => router.replace("/")} style={styles.primaryButton}>
+          <Pressable onPress={() => router.replace("/login")} style={styles.primaryButton}>
             <Text style={styles.primaryButtonText}>Ir a iniciar sesión</Text>
           </Pressable>
         </View>
@@ -69,7 +70,7 @@ export default function Register() {
         style={styles.keyboard}
       >
         <ScrollView contentContainerStyle={styles.container}>
-          <Link href="/" style={styles.backLink}>
+          <Link href="/login" style={styles.backLink}>
             ← Volver
           </Link>
           <Text style={styles.brand}>WHEEL-E</Text>
@@ -88,14 +89,14 @@ export default function Register() {
           <TextInput
             onChangeText={setFullName}
             placeholder="Nombre completo"
-            placeholderTextColor="#929C97"
+            placeholderTextColor={colores.placeholder}
             style={styles.input}
             value={fullName}
           />
           <TextInput
             onChangeText={setInstitutionalCode}
             placeholder="Código institucional"
-            placeholderTextColor="#929C97"
+            placeholderTextColor={colores.placeholder}
             style={styles.input}
             value={institutionalCode}
           />
@@ -104,14 +105,14 @@ export default function Register() {
             keyboardType="email-address"
             onChangeText={setEmail}
             placeholder="Correo institucional"
-            placeholderTextColor="#929C97"
+            placeholderTextColor={colores.placeholder}
             style={styles.input}
             value={email}
           />
           <TextInput
             onChangeText={setAcademicProgram}
             placeholder="Programa académico"
-            placeholderTextColor="#929C97"
+            placeholderTextColor={colores.placeholder}
             style={styles.input}
             value={academicProgram}
           />
@@ -119,7 +120,7 @@ export default function Register() {
             autoCapitalize="none"
             onChangeText={setPassword}
             placeholder="Contraseña (mínimo 8 caracteres)"
-            placeholderTextColor="#929C97"
+            placeholderTextColor={colores.placeholder}
             secureTextEntry
             style={styles.input}
             value={password}
@@ -146,34 +147,34 @@ export default function Register() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: "#F7F9F8", flex: 1 },
+  safeArea: { backgroundColor: colores.fondo, flex: 1 },
   keyboard: { flex: 1 },
   container: { padding: 28, paddingBottom: 40 },
   centered: { flex: 1, justifyContent: "center", padding: 28 },
-  backLink: { color: "#197B62", fontSize: 14, fontWeight: "700", marginBottom: 34 },
-  brand: { color: "#197B62", fontSize: 14, fontWeight: "800", letterSpacing: 2 },
-  title: { color: "#17211E", fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 10 },
-  description: { color: "#68736E", fontSize: 15, lineHeight: 22, marginTop: 9 },
-  configurationNotice: { color: "#815B15", fontSize: 13, marginTop: 18 },
+  backLink: { color: colores.primario, fontSize: 14, fontWeight: "700", marginBottom: 34 },
+  brand: { color: colores.primario, fontSize: 14, fontWeight: "800", letterSpacing: 2 },
+  title: { color: colores.titulo, fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 10 },
+  description: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 9 },
+  configurationNotice: { color: colores.avisoTexto, fontSize: 13, marginTop: 18 },
   input: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#DCE4E0",
+    backgroundColor: colores.blanco,
+    borderColor: colores.borde,
     borderRadius: 12,
     borderWidth: 1,
-    color: "#26312D",
+    color: colores.texto,
     fontSize: 15,
     height: 52,
     marginTop: 13,
     paddingHorizontal: 15,
   },
-  error: { color: "#B33D32", fontSize: 13, lineHeight: 18, marginTop: 12 },
+  error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },
   primaryButton: {
     alignItems: "center",
-    backgroundColor: "#197B62",
+    backgroundColor: colores.primario,
     borderRadius: 12,
     marginTop: 20,
     padding: 16,
   },
   disabledButton: { opacity: 0.55 },
-  primaryButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
+  primaryButtonText: { color: colores.blanco, fontSize: 15, fontWeight: "800" },
 });

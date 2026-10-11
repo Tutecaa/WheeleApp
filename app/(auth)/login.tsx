@@ -1,78 +1,37 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { Link, router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Link } from "expo-router";
 
-import {
-  getCurrentSession,
-  signIn,
-  subscribeToAuthChanges,
-} from "@/services/auth";
+import { signIn } from "@/services/auth.service";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { colores } from "@/constants/colores";
 
-export default function Index() {
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    if (isSupabaseConfigured) {
-      getCurrentSession()
-        .then((session) => {
-          if (isMounted && session) router.replace("/home");
-        })
-        .catch(() => {
-          if (isMounted) setError("No se pudo comprobar la sesión actual.");
-        })
-        .finally(() => {
-          if (isMounted) setIsCheckingSession(false);
-        });
-    } else {
-      setIsCheckingSession(false);
-    }
-
-    const { data } = subscribeToAuthChanges((session) => {
-      if (isMounted && session) router.replace("/home");
-    });
-
-    return () => {
-      isMounted = false;
-      data.subscription.unsubscribe();
-    };
-  }, []);
 
   async function handleSubmit() {
     setError("");
     setIsSubmitting(true);
     try {
+      // Al iniciar sesión, el layout raíz redirige a /home.
       await signIn(email, password);
-      router.replace("/home");
     } catch (submitError) {
       setError((submitError as Error).message);
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  if (isCheckingSession) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <ActivityIndicator color="#197B62" size="large" />
-      </SafeAreaView>
-    );
   }
 
   return (
@@ -104,7 +63,7 @@ export default function Index() {
               keyboardType="email-address"
               onChangeText={setEmail}
               placeholder="nombre@uis.edu.co"
-              placeholderTextColor="#929C97"
+              placeholderTextColor={colores.placeholder}
               style={styles.input}
               value={email}
             />
@@ -114,7 +73,7 @@ export default function Index() {
               autoCapitalize="none"
               onChangeText={setPassword}
               placeholder="Tu contraseña"
-              placeholderTextColor="#929C97"
+              placeholderTextColor={colores.placeholder}
               secureTextEntry
               style={styles.input}
               value={password}
@@ -138,12 +97,12 @@ export default function Index() {
             </Pressable>
           </View>
 
-          <Link href="/forgot-password" style={styles.link}>
+          <Link href="/recuperar" style={styles.link}>
             ¿Olvidaste tu contraseña?
           </Link>
           <View style={styles.registerRow}>
             <Text style={styles.secondaryText}>¿Aún no tienes una cuenta? </Text>
-            <Link href="/register" style={styles.link}>
+            <Link href="/registro" style={styles.link}>
               Regístrate
             </Link>
           </View>
@@ -154,45 +113,45 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: "#F7F9F8", flex: 1 },
+  safeArea: { backgroundColor: colores.fondo, flex: 1 },
   keyboard: { flex: 1 },
   container: { flex: 1, justifyContent: "center", padding: 28 },
-  brand: { color: "#197B62", fontSize: 14, fontWeight: "800", letterSpacing: 2 },
-  title: { color: "#17211E", fontSize: 30, fontWeight: "800", lineHeight: 36, marginTop: 10 },
-  subtitle: { color: "#68736E", fontSize: 16, marginTop: 8 },
+  brand: { color: colores.primario, fontSize: 14, fontWeight: "800", letterSpacing: 2 },
+  title: { color: colores.titulo, fontSize: 30, fontWeight: "800", lineHeight: 36, marginTop: 10 },
+  subtitle: { color: colores.textoSecundario, fontSize: 16, marginTop: 8 },
   configurationNotice: {
-    backgroundColor: "#FFF4DE",
-    borderColor: "#F1D296",
+    backgroundColor: colores.avisoFondo,
+    borderColor: colores.avisoBorde,
     borderRadius: 12,
     borderWidth: 1,
     marginTop: 22,
     padding: 13,
   },
-  configurationTitle: { color: "#815B15", fontSize: 13, fontWeight: "800" },
-  configurationText: { color: "#815B15", fontSize: 12, lineHeight: 18, marginTop: 4 },
+  configurationTitle: { color: colores.avisoTexto, fontSize: 13, fontWeight: "800" },
+  configurationText: { color: colores.avisoTexto, fontSize: 12, lineHeight: 18, marginTop: 4 },
   form: { marginTop: 28 },
-  label: { color: "#26312D", fontSize: 13, fontWeight: "700", marginBottom: 7, marginTop: 15 },
+  label: { color: colores.texto, fontSize: 13, fontWeight: "700", marginBottom: 7, marginTop: 15 },
   input: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#DCE4E0",
+    backgroundColor: colores.blanco,
+    borderColor: colores.borde,
     borderRadius: 12,
     borderWidth: 1,
-    color: "#26312D",
+    color: colores.texto,
     fontSize: 15,
     height: 52,
     paddingHorizontal: 15,
   },
-  error: { color: "#B33D32", fontSize: 13, lineHeight: 18, marginTop: 12 },
+  error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },
   primaryButton: {
     alignItems: "center",
-    backgroundColor: "#197B62",
+    backgroundColor: colores.primario,
     borderRadius: 12,
     marginTop: 20,
     padding: 16,
   },
   disabledButton: { opacity: 0.55 },
-  primaryButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
-  link: { color: "#197B62", fontSize: 14, fontWeight: "800", textAlign: "center" },
+  primaryButtonText: { color: colores.blanco, fontSize: 15, fontWeight: "800" },
+  link: { color: colores.primario, fontSize: 14, fontWeight: "800", textAlign: "center" },
   registerRow: { flexDirection: "row", justifyContent: "center", marginTop: 20 },
-  secondaryText: { color: "#68736E", fontSize: 14 },
+  secondaryText: { color: colores.textoSecundario, fontSize: 14 },
 });

@@ -1,10 +1,11 @@
 // --- TIPOS Y ENUMS AUXILIARES ---
 
-export type RolUsuario = 'pasajero' | 'conductor' | 'administrador';
+// Es conductor quien tenga al menos un vehículo aprobado; no es un rol aparte.
+export type RolUsuario = 'pasajero' | 'administrador';
 
 export type EstadoUsuario = 'pendiente_confirmacion' | 'activo' | 'sancionado' | 'inactivo';
 
-export type EstadoHabilitacionVehiculo = 'pendiente' | 'aprobado' | 'rechazado';
+export type EstadoHabilitacionVehiculo = 'pendiente' | 'aprobado' | 'rechazado' | 'cancelado';
 
 export type EstadoViaje = 'publicado' | 'en_curso' | 'finalizado' | 'cancelado';
 
@@ -53,7 +54,7 @@ export interface Usuario {
  */
 export interface Vehiculo {
   id: string;
-  conductorId: string; // ID del Usuario con rol Conductor
+  conductorId: string; // ID del usuario dueño del vehículo
   placa: string;
   marca: string;
   linea: string;
