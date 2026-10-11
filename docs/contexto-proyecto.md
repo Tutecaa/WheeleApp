@@ -13,10 +13,10 @@ WHEEL-E es una **aplicación móvil de viajes compartidos exclusiva para la comu
 
 ## 2. Equipo y forma de trabajo
 
-| Código | Integrante | Rol principal | Rol secundario | Iniciales en Jira |
-|---|---|---|---|---|
-| 2232451 | Hermes Julián Delgado Guerrero | Product Owner | Development Team | JG |
-| 2231893 | Samuel David Penilla Ramírez | Scrum Master | Development Team | SP |
+| Código  | Integrante                     | Rol principal | Rol secundario   | Iniciales en Jira |
+| ------- | ------------------------------ | ------------- | ---------------- | ----------------- |
+| 2232451 | Hermes Julián Delgado Guerrero | Product Owner | Development Team | JG                |
+| 2231893 | Samuel David Penilla Ramírez   | Scrum Master  | Development Team | SP                |
 
 - Proyecto de la asignatura **Ingeniería de Software (UIS)**, Grupo N° 7.
 - Marco de trabajo **Scrum**, con 4 sprints. El backlog está en Jira (proyecto `WE`, tablero "WE board").
@@ -52,6 +52,7 @@ Reemplazar la coordinación informal por una app **funcional, sencilla y confiab
 **Objetivo general.** Desarrollar una aplicación móvil que permita a los miembros verificados de la comunidad universitaria de la UIS publicar, encontrar y coordinar viajes compartidos hacia el campus. La búsqueda se basa en la proximidad geográfica entre el punto de partida del pasajero y el trazado de la ruta del conductor.
 
 **Objetivos específicos** (tal como están en las entregas):
+
 1. Implementar un módulo de autenticación e identidad que valide el correo institucional (`@uis.edu.co` / `@correo.uis.edu.co`) al registrarse.
 2. Desarrollar el módulo de gestión de viajes: puntos de partida, trazado de la ruta en el mapa, horarios de salida y número de cupos.
 3. Diseñar e integrar el algoritmo de búsqueda por proximidad geográfica entre el origen del pasajero y el trazado de la ruta del conductor, dentro de un radio configurable.
@@ -64,12 +65,12 @@ Reemplazar la coordinación informal por una app **funcional, sencilla y confiab
 
 ## 7. Actores
 
-| Actor | Descripción |
-|---|---|
-| **Pasajero** | Usuario verificado que necesita transporte. Busca viajes por cercanía, solicita cupos, se comunica con el conductor y lo califica al final. |
-| **Conductor** | Usuario verificado que además registró un vehículo y fue **habilitado por un administrador**. Publica viajes, gestiona solicitudes y cupos, y califica a sus pasajeros. **Un mismo usuario puede ser conductor en unos viajes y pasajero en otros.** |
-| **Administrador** | Opera la plataforma. Verifica documentos vehiculares y habilita conductores. **No publica ni solicita viajes.** |
-| **Servicio externo de rutas** | Actor de sistema, en nuestro caso OpenRouteService. Recibe coordenadas y devuelve el trazado del recorrido sobre las calles de la ciudad. |
+| Actor                         | Descripción                                                                                                                                                                                                                                          |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pasajero**                  | Usuario verificado que necesita transporte. Busca viajes por cercanía, solicita cupos, se comunica con el conductor y lo califica al final.                                                                                                          |
+| **Conductor**                 | Usuario verificado que además registró un vehículo y fue **habilitado por un administrador**. Publica viajes, gestiona solicitudes y cupos, y califica a sus pasajeros. **Un mismo usuario puede ser conductor en unos viajes y pasajero en otros.** |
+| **Administrador**             | Opera la plataforma. Verifica documentos vehiculares y habilita conductores. **No publica ni solicita viajes.**                                                                                                                                      |
+| **Servicio externo de rutas** | Actor de sistema, en nuestro caso OpenRouteService. Recibe coordenadas y devuelve el trazado del recorrido sobre las calles de la ciudad.                                                                                                            |
 
 ## 8. Cómo funciona el producto
 
@@ -109,15 +110,16 @@ Reemplazar la coordinación informal por una app **funcional, sencilla y confiab
 
 ## 10. Stack tecnológico y decisiones técnicas
 
-| Capa | Tecnología |
-|---|---|
-| App móvil | **React Native con Expo** (TypeScript, expo-router) |
-| Backend | **Supabase**: Auth, PostgreSQL con **PostGIS**, Storage y políticas **RLS** |
-| Mapas | **OpenStreetMap** (mapa base) |
-| Rutas | **OpenRouteService** (API de direcciones) |
-| Gestión | Jira (Scrum), GitHub (código) |
+| Capa      | Tecnología                                                                  |
+| --------- | --------------------------------------------------------------------------- |
+| App móvil | **React Native con Expo** (TypeScript, expo-router)                         |
+| Backend   | **Supabase**: Auth, PostgreSQL con **PostGIS**, Storage y políticas **RLS** |
+| Mapas     | **OpenStreetMap** (mapa base)                                               |
+| Rutas     | **OpenRouteService** (API de direcciones)                                   |
+| Gestión   | Jira (Scrum), GitHub (código)                                               |
 
 Decisiones ya tomadas en los requerimientos:
+
 - **El trazado se calcula una sola vez:** al publicar el viaje o al modificar su recorrido. Nunca en cada consulta, para no gastar la cuota de OpenRouteService.
 - **No se publica un viaje sin trazado.** Si OpenRouteService falla, se informa al usuario y se permite reintentar.
 - **La proximidad es distancia en línea recta** entre el punto y la ruta (PostGIS sobre `geography`), no distancia caminando. Por eso siempre se muestra la ruta en el mapa, para que el pasajero verifique.
@@ -139,10 +141,11 @@ docs/           documentación del proyecto (este archivo)
 ```
 
 Reglas:
+
 1. **Las pantallas no llaman a Supabase directamente**: siempre pasan por `services/`.
 2. **Todo cambio de base de datos se guarda en un archivo** de `supabase/migrations/` (numerado), no solo en el panel web.
 3. **RLS activado en todas las tablas.** Cada usuario solo ve o modifica lo que le corresponde según su rol.
-4. **Claves solo en `.env`**, y ese archivo no se sube a GitHub. En la app va únicamente la *anon key*; la *service_role key* nunca va.
+4. **Claves solo en `.env`**, y ese archivo no se sube a GitHub. En la app va únicamente la _anon key_; la _service_role key_ nunca va.
 5. Las librerías se instalan con `npx expo install`.
 6. Se trabaja **una historia de usuario a la vez**, en su propia rama (`feature/...`), y se valida contra sus criterios de aceptación.
 
@@ -150,18 +153,19 @@ Reglas:
 
 Estos estados están implícitos en los requerimientos y conviene modelarlos tal cual.
 
-| Entidad | Estados | Notas |
-|---|---|---|
-| Cuenta | `pendiente_confirmacion` → `activa`; además `suspendida` / `bloqueada` | Solo una cuenta activa puede iniciar sesión. |
-| Solicitud de habilitación | `pendiente` → `aprobada` / `rechazada`; `cancelada` (la retira el usuario) | Se registran el administrador que decide y la fecha. El rechazo exige motivo. |
-| Viaje | `publicado` → `en_curso` → `finalizado`; `cancelado` | Solo se edita o cancela si no ha iniciado. Solo un viaje finalizado se puede calificar. |
-| Solicitud de cupo | `pendiente` → `aceptada` (reserva confirmada) / `rechazada`; `cancelada` | Al aceptar se descuenta 1 cupo. Al cancelar una reserva confirmada se devuelve el cupo. |
+| Entidad                   | Estados                                                                    | Notas                                                                                   |
+| ------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Cuenta                    | `pendiente_confirmacion` → `activa`; además `suspendida` / `bloqueada`     | Solo una cuenta activa puede iniciar sesión.                                            |
+| Solicitud de habilitación | `pendiente` → `aprobada` / `rechazada`; `cancelada` (la retira el usuario) | Se registran el administrador que decide y la fecha. El rechazo exige motivo.           |
+| Viaje                     | `publicado` → `en_curso` → `finalizado`; `cancelado`                       | Solo se edita o cancela si no ha iniciado. Solo un viaje finalizado se puede calificar. |
+| Solicitud de cupo         | `pendiente` → `aceptada` (reserva confirmada) / `rechazada`; `cancelada`   | Al aceptar se descuenta 1 cupo. Al cancelar una reserva confirmada se devuelve el cupo. |
 
 ## 13. Alcance
 
 **Dentro del alcance (backlog actual):** RF1 a RF16 (sección 14) y la tarea de inicio y finalización del viaje.
 
 **Fuera del alcance actual** (se mencionan en los objetivos pero no tienen RF ni historia):
+
 - Mensajería o chat entre conductor y pasajeros.
 - Reportes de conducta y sanción de cuentas por el administrador.
 - Configuración de parámetros del sistema desde la app.
@@ -176,6 +180,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
 ### Módulo de cuentas y acceso
 
 **RF1 · Registrar usuario con correo institucional.** Complejidad media, prioridad 5, crítico.
+
 - **Entrada:** nombre completo, código institucional, correo institucional, contraseña, programa académico y foto de perfil (opcional).
 - **Salida:** cuenta en estado pendiente de confirmación y correo de verificación enviado.
 - **Regla:** el dominio debe ser `@uis.edu.co` o `@correo.uis.edu.co`. La cuenta solo se activa al abrir el enlace de verificación.
@@ -192,6 +197,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
   - Solo se inicia sesión después de confirmar el correo.
 
 **RF2 · Autenticar usuario y recuperar acceso.** Complejidad baja, prioridad 5, crítico.
+
 - **Entrada:** correo y contraseña. Para recuperar, solo el correo.
 - **Salida:** sesión iniciada con su rol (pasajero, conductor habilitado o administrador), o correo con el enlace de restablecimiento.
 - **Casos a manejar:**
@@ -206,6 +212,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
   - El enlace de restablecimiento se envía solo al correo de la cuenta y tiene vigencia limitada.
 
 **RF3 · Registrar vehículo y solicitar habilitación como conductor.** Complejidad media, prioridad 5, crítico.
+
 - **Entrada:** placa, marca, línea, modelo, color, número de puestos, y archivos del SOAT, la revisión tecnomecánica y la licencia de conducción.
 - **Salida:** solicitud de habilitación en estado pendiente.
 - **Casos a manejar:**
@@ -225,6 +232,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
 ### Módulo de gestión de viajes
 
 **RF4 · Publicar un viaje.** Complejidad alta, prioridad 5, crítico.
+
 - **Entrada:** coordenadas de origen, paradas intermedias (opcionales) y destino; fecha, hora de salida, cupos, aporte sugerido y vehículo.
 - **Salida:** viaje en estado publicado, con el trazado almacenado y visible en las búsquedas.
 - **Casos a manejar:**
@@ -241,6 +249,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
   - Aparece en las búsquedas que correspondan.
 
 **RF5 · Obtener y almacenar el trazado de la ruta.** Complejidad alta, prioridad 5, crítico.
+
 - **Entrada:** lista ordenada de coordenadas (origen, paradas, destino).
 - **Salida:** geometría del recorrido real por las calles, guardada con el viaje.
 - **Reglas:**
@@ -257,6 +266,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
   - Si el servicio falla, se informa y no se publica un viaje sin trazado.
 
 **RF6 · Modificar o cancelar un viaje publicado.** Complejidad media, prioridad 4, crítico.
+
 - **Entrada:** viaje y datos a cambiar, o confirmación de cancelación con su motivo.
 - **Salida:** viaje actualizado, o cancelado con aviso a los pasajeros afectados.
 - **Reglas:**
@@ -274,6 +284,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
   - El trazado se actualiza cuando cambia el recorrido.
 
 **RF7 · Consultar los viajes propios.** Complejidad baja, prioridad 3.
+
 - **Entrada:** usuario autenticado y filtro (próximos o finalizados; como conductor o como pasajero).
 - **Salida:** lista de viajes con fecha, hora, estado y rol que desempeñó el usuario.
 - **Casos a manejar:**
@@ -286,6 +297,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
 ### Módulo de búsqueda y emparejamiento
 
 **RF8 · Buscar viajes por proximidad geográfica.** Complejidad alta, prioridad 5, crítico. **Es la funcionalidad diferenciadora.**
+
 - **Entrada:** punto de partida (coordenadas), fecha, franja horaria y radio de tolerancia en metros.
 - **Salida:** viajes con distancia menor o igual al radio, ordenados de menor a mayor e indicando los metros.
 - **Reglas:**
@@ -304,6 +316,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
   - Al cambiar el radio, los resultados se actualizan.
 
 **RF9 · Consultar el detalle de un viaje.** Complejidad media, prioridad 4, crítico.
+
 - **Entrada:** viaje seleccionado y punto de partida del pasajero.
 - **Salida:** recorrido en el mapa, punto donde la ruta pasa más cerca, distancia, hora de salida, cupos, aporte sugerido y datos públicos del conductor.
 - **Casos a manejar:**
@@ -316,6 +329,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
 ### Módulo de solicitudes y cupos
 
 **RF10 · Solicitar un cupo.** Complejidad media, prioridad 5, crítico.
+
 - **Entrada:** viaje, pasajero y mensaje opcional al conductor.
 - **Salida:** solicitud pendiente y notificación al conductor.
 - **Casos a manejar:**
@@ -329,6 +343,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
   - **El cupo no se descuenta hasta que el conductor acepte.**
 
 **RF11 · Gestionar las solicitudes recibidas (conductor).** Complejidad media, prioridad 5, crítico.
+
 - **Entrada:** solicitud y decisión (aceptar, o rechazar con motivo opcional).
 - **Salida:** solicitud aceptada o rechazada, cupo descontado si se acepta y notificación al pasajero.
 - **Detalles:**
@@ -345,6 +360,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
   - Solo el conductor del viaje decide.
 
 **RF12 · Cancelar una solicitud o una reserva confirmada (pasajero).** Complejidad media, prioridad 4, crítico.
+
 - **Entrada:** solicitud o reserva y confirmación.
 - **Salida:** solicitud o reserva cancelada, cupo devuelto si estaba confirmada y conductor notificado.
 - **Casos a manejar:**
@@ -359,6 +375,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
 ### Módulo de confianza y reputación
 
 **RF13 · Calificar a los participantes de un viaje finalizado.** Complejidad baja, prioridad 3.
+
 - **Entrada:** viaje, usuario calificado, nota de 1 a 5 y comentario opcional.
 - **Salida:** calificación registrada y promedio del usuario calificado actualizado.
 - **Casos a manejar:**
@@ -374,6 +391,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
   - Solo en viajes finalizados.
 
 **RF14 · Consultar el perfil público de un usuario.** Complejidad baja, prioridad 3.
+
 - **Salida:** nombre, foto, programa académico, calificación promedio, número de viajes y comentarios recibidos.
 - **Casos a manejar:**
   - Sin calificaciones: mostrar "aún sin valoraciones" en vez de un promedio.
@@ -386,6 +404,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
 ### Módulo de notificaciones
 
 **RF15 · Notificar los eventos relevantes.** Complejidad media, prioridad 4.
+
 - **Eventos:**
   - Nueva solicitud de cupo.
   - Solicitud aceptada o rechazada.
@@ -409,6 +428,7 @@ Prioridad de 1 a 5, donde 5 es la más alta.
 ### Módulo de administración
 
 **RF16 · Verificar documentos y habilitar conductores.** Complejidad baja, prioridad 4, crítico.
+
 - **Entrada:** solicitud pendiente y decisión (aprobar, o rechazar con motivo **obligatorio**).
 - **Salida:** usuario habilitado como conductor con su vehículo aprobado, o rechazo con el motivo notificado.
 - **Detalles:**
@@ -436,24 +456,25 @@ Prioridad de 1 a 5, donde 5 es la más alta.
 
 ## 15. Casos de uso
 
-| CU | Nombre | RF | Actor | Incluye |
-|---|---|---|---|---|
-| CU1 | Registrar cuenta institucional | RF1 | Usuario | — |
-| CU2 | Iniciar sesión y recuperar el acceso | RF2 | Usuario, Administrador | — |
-| CU3 | Solicitar habilitación como conductor | RF3 | Conductor | — |
-| CU4 | Verificar documentos y habilitar conductor | RF16 | Administrador | CU12 |
-| CU5 | Publicar un viaje | RF4 | Conductor | CU6 |
-| CU6 | Obtener el trazado de la ruta | RF5 | Servicio de rutas | — |
-| CU7 | Gestionar un viaje publicado | RF6, RF7 | Conductor | CU6, CU12 |
-| CU8 | Buscar viajes por proximidad y ver su detalle | RF8, RF9, RF14 | Pasajero | — |
-| CU9 | Solicitar y cancelar un cupo | RF10, RF12, RF7 | Pasajero | CU12 |
-| CU10 | Gestionar las solicitudes recibidas | RF11, RF14 | Conductor | CU12 |
-| CU11 | Calificar a los participantes | RF13 | Pasajero, Conductor | — |
-| CU12 | Notificar eventos del viaje | RF15 | Sistema → Pasajero, Conductor | — |
+| CU   | Nombre                                        | RF              | Actor                         | Incluye   |
+| ---- | --------------------------------------------- | --------------- | ----------------------------- | --------- |
+| CU1  | Registrar cuenta institucional                | RF1             | Usuario                       | —         |
+| CU2  | Iniciar sesión y recuperar el acceso          | RF2             | Usuario, Administrador        | —         |
+| CU3  | Solicitar habilitación como conductor         | RF3             | Conductor                     | —         |
+| CU4  | Verificar documentos y habilitar conductor    | RF16            | Administrador                 | CU12      |
+| CU5  | Publicar un viaje                             | RF4             | Conductor                     | CU6       |
+| CU6  | Obtener el trazado de la ruta                 | RF5             | Servicio de rutas             | —         |
+| CU7  | Gestionar un viaje publicado                  | RF6, RF7        | Conductor                     | CU6, CU12 |
+| CU8  | Buscar viajes por proximidad y ver su detalle | RF8, RF9, RF14  | Pasajero                      | —         |
+| CU9  | Solicitar y cancelar un cupo                  | RF10, RF12, RF7 | Pasajero                      | CU12      |
+| CU10 | Gestionar las solicitudes recibidas           | RF11, RF14      | Conductor                     | CU12      |
+| CU11 | Calificar a los participantes                 | RF13            | Pasajero, Conductor           | —         |
+| CU12 | Notificar eventos del viaje                   | RF15            | Sistema → Pasajero, Conductor | —         |
 
 ## 16. Backlog en Jira (épicas, historias y sprints)
 
 **Épicas:**
+
 1. Gestión de cuentas y perfiles: RF1, RF2, RF14.
 2. Gestión de viajes: RF4, RF5, RF6, RF7.
 3. Búsqueda por proximidad: RF8, RF9.
@@ -461,33 +482,34 @@ Prioridad de 1 a 5, donde 5 es la más alta.
 5. Confianza y comunicación: RF3, RF13, RF15.
 6. Administración de la plataforma: RF16.
 
-| Sprint | Jira | Historia de usuario | RF | SP | Responsable |
-|---|---|---|---|---|---|
-| 1 | WE-7 | Registrarme con mi correo institucional para acceder a la aplicación | RF1 | 5 | Hermes |
-| 1 | WE-10 | Confirmar mi correo institucional para que mi cuenta quede verificada | RF1 | 3 | Samuel |
-| 1 | WE-11 | Iniciar sesión con mis credenciales para acceder a mi perfil | RF2 | 3 | Hermes |
-| 1 | WE-12 | Recuperar mi contraseña para no perder el acceso a mi cuenta | RF2 | 3 | Samuel |
-| 1 | WE-14 | Solicitar mi habilitación como conductor cargando los documentos de mi vehículo | RF3 | 5 | Samuel |
-| 1 | WE-15 | Revisar los documentos de una solicitud para habilitar o rechazar a un conductor | RF16 | 5 | Hermes |
-| 2 | WE-16 | Publicar un viaje marcando origen, paradas y destino para ofrecer cupos | RF4 | 8 | Samuel |
-| 2 | WE-17 | Obtener el trazado real de la ruta desde el servicio externo y almacenarlo | RF5 | 8 | Hermes |
-| 2 | WE-18 | Modificar un viaje publicado para corregir sus datos antes de realizarlo | RF6 | 5 | Samuel |
-| 2 | WE-19 | Cancelar un viaje publicado para informar a los pasajeros | RF6 | 3 | Hermes |
-| 2 | WE-20 | Consultar mis viajes y reservas para hacer seguimiento a mi participación | RF7 | 3 | Samuel |
-| 3 | WE-13 | Consultar el perfil público de otro usuario para saber con quién viajaré | RF14 | 3 | Hermes |
-| 3 | WE-21 | Buscar los viajes que pasan cerca de mi punto de partida | RF8 | 8 | Hermes |
-| 3 | WE-22 | Consultar el detalle de un viaje sobre el mapa para decidir si me sirve | RF9 | 5 | Samuel |
-| 4 | WE-23 | Solicitar un cupo en un viaje para reservar mi puesto | RF10 | 5 | Hermes |
-| 4 | WE-24 | Aceptar o rechazar las solicitudes recibidas | RF11 | 5 | Samuel |
-| 4 | WE-25 | Cancelar mi solicitud o mi reserva para liberar el cupo | RF12 | 3 | Hermes |
-| 4 | WE-26 | Calificar a los demás participantes para construir la confianza de la comunidad | RF13 | 5 | Samuel |
-| 4 | WE-27 | Recibir notificaciones de los eventos de mis viajes | RF15 | 5 | Hermes |
+| Sprint | Jira  | Historia de usuario                                                              | RF   | SP  | Responsable |
+| ------ | ----- | -------------------------------------------------------------------------------- | ---- | --- | ----------- |
+| 1      | WE-7  | Registrarme con mi correo institucional para acceder a la aplicación             | RF1  | 5   | Hermes      |
+| 1      | WE-10 | Confirmar mi correo institucional para que mi cuenta quede verificada            | RF1  | 3   | Samuel      |
+| 1      | WE-11 | Iniciar sesión con mis credenciales para acceder a mi perfil                     | RF2  | 3   | Hermes      |
+| 1      | WE-12 | Recuperar mi contraseña para no perder el acceso a mi cuenta                     | RF2  | 3   | Samuel      |
+| 1      | WE-14 | Solicitar mi habilitación como conductor cargando los documentos de mi vehículo  | RF3  | 5   | Samuel      |
+| 1      | WE-15 | Revisar los documentos de una solicitud para habilitar o rechazar a un conductor | RF16 | 5   | Hermes      |
+| 2      | WE-16 | Publicar un viaje marcando origen, paradas y destino para ofrecer cupos          | RF4  | 8   | Samuel      |
+| 2      | WE-17 | Obtener el trazado real de la ruta desde el servicio externo y almacenarlo       | RF5  | 8   | Hermes      |
+| 2      | WE-18 | Modificar un viaje publicado para corregir sus datos antes de realizarlo         | RF6  | 5   | Samuel      |
+| 2      | WE-19 | Cancelar un viaje publicado para informar a los pasajeros                        | RF6  | 3   | Hermes      |
+| 2      | WE-20 | Consultar mis viajes y reservas para hacer seguimiento a mi participación        | RF7  | 3   | Samuel      |
+| 3      | WE-13 | Consultar el perfil público de otro usuario para saber con quién viajaré         | RF14 | 3   | Hermes      |
+| 3      | WE-21 | Buscar los viajes que pasan cerca de mi punto de partida                         | RF8  | 8   | Hermes      |
+| 3      | WE-22 | Consultar el detalle de un viaje sobre el mapa para decidir si me sirve          | RF9  | 5   | Samuel      |
+| 4      | WE-23 | Solicitar un cupo en un viaje para reservar mi puesto                            | RF10 | 5   | Hermes      |
+| 4      | WE-24 | Aceptar o rechazar las solicitudes recibidas                                     | RF11 | 5   | Samuel      |
+| 4      | WE-25 | Cancelar mi solicitud o mi reserva para liberar el cupo                          | RF12 | 3   | Hermes      |
+| 4      | WE-26 | Calificar a los demás participantes para construir la confianza de la comunidad  | RF13 | 5   | Samuel      |
+| 4      | WE-27 | Recibir notificaciones de los eventos de mis viajes                              | RF15 | 5   | Hermes      |
 
 Total: 19 historias, 90 story points. Para estimar se usa 1 SP ≈ 2 horas.
 
 **Además**, la EDT incluye el entregable **"Inicio y finalización del viaje" (4 h)**, necesario porque RF13 exige que el viaje esté finalizado. Si aún no existe en Jira, hay que crearlo.
 
 **Orden de dependencias:**
+
 1. Cuentas (Sprint 1).
 2. Habilitación de conductor (Sprint 1).
 3. Publicación y trazado (Sprint 2).
@@ -511,9 +533,3 @@ Los requerimientos mencionan estos parámetros pero no fijan su valor. Hay que c
 ## 18. Diseño de interfaces
 
 Prototipo en Figma: https://www.figma.com/make/ZT4JiXKAKfTcj0Z8ahxs63/WHEEL-E-Mobile-App-UI-Kit
-
-Pantallas del storyboard:
-- Inicio de sesión y crear cuenta.
-- Publicar ruta y buscar ruta.
-- Solicitudes y detalle del viaje.
-- Calificación del viaje.
