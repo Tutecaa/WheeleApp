@@ -100,7 +100,8 @@ wheel-e/
 │
 ├── utils/                        ← funciones de ayuda sin pantalla
 │   ├── validaciones.ts           ← ¿es correo UIS?, ¿fecha futura?, etc.
-│   └── formato.ts                ← formato de fechas, metros, etc.
+│   ├── formato.ts                ← formato de fechas, metros, etc.
+│   └── confirmar.ts              ← diálogo de confirmación (Alert en el celular, confirm en web)
 │
 ├── constants/
 │   ├── colores.ts                ← colores de la app (los del Figma)
@@ -116,14 +117,18 @@ wheel-e/
 │   └── migrations/
 │       ├── 001_perfiles.sql
 │       ├── 002_vehiculos_y_habilitacion.sql
-│       ├── 003_viajes.sql
-│       ├── 004_solicitudes.sql
-│       ├── 005_calificaciones.sql
-│       ├── 006_notificaciones.sql
-│       └── 007_busqueda_proximidad.sql   ← función PostGIS de distancia
+│       ├── 003_ajustes_habilitacion.sql  ← ajustes a 001/002 (ya aplicadas)
+│       ├── 004_viajes.sql
+│       ├── 005_solicitudes.sql
+│       ├── 006_calificaciones.sql
+│       ├── 007_notificaciones.sql
+│       └── 008_busqueda_proximidad.sql   ← función PostGIS de distancia
 │
 ├── docs/
-│   └── contexto-proyecto.md      ← contexto, requerimientos y backlog del proyecto
+│   ├── contexto-proyecto.md      ← contexto, requerimientos y backlog del proyecto
+│   └── prototipo-rutas-bucaramanga.html  ← prototipo del trazado de rutas
+│
+├── diagramas/                    ← diagramas UML (.puml y .png)
 │
 ├── assets/                       ← logo, íconos, imágenes
 ├── AGENTS.md                     ← instrucciones para Claude Code
