@@ -1,19 +1,12 @@
 import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, router } from "expo-router";
 
 import { signUp } from "@/services/auth.service";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { Boton } from "@/components/Boton";
+import { CampoTexto } from "@/components/CampoTexto";
 import { colores } from "@/constants/colores";
 
 export default function Register() {
@@ -22,12 +15,18 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [academicProgram, setAcademicProgram] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
 
   async function handleSubmit() {
     setError("");
+    if (password !== confirmation) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const result = await signUp({
@@ -55,9 +54,7 @@ export default function Register() {
             Te enviamos un enlace de confirmación. Confírmalo antes de iniciar
             sesión.
           </Text>
-          <Pressable onPress={() => router.replace("/login")} style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Ir a iniciar sesión</Text>
-          </Pressable>
+          <Boton onPress={() => router.replace("/login")} titulo="Ir a iniciar sesión" />
         </View>
       </SafeAreaView>
     );
@@ -69,7 +66,7 @@ export default function Register() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.keyboard}
       >
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <Link href="/login" style={styles.backLink}>
             ← Volver
           </Link>
@@ -86,60 +83,54 @@ export default function Register() {
             </Text>
           )}
 
-          <TextInput
+          <CampoTexto
+            autoComplete="name"
             onChangeText={setFullName}
             placeholder="Nombre completo"
-            placeholderTextColor={colores.placeholder}
-            style={styles.input}
             value={fullName}
           />
-          <TextInput
+          <CampoTexto
             onChangeText={setInstitutionalCode}
             placeholder="Código institucional"
-            placeholderTextColor={colores.placeholder}
-            style={styles.input}
             value={institutionalCode}
           />
-          <TextInput
+          <CampoTexto
             autoCapitalize="none"
+            autoComplete="email"
             keyboardType="email-address"
             onChangeText={setEmail}
             placeholder="Correo institucional"
-            placeholderTextColor={colores.placeholder}
-            style={styles.input}
             value={email}
           />
-          <TextInput
+          <CampoTexto
             onChangeText={setAcademicProgram}
             placeholder="Programa académico"
-            placeholderTextColor={colores.placeholder}
-            style={styles.input}
             value={academicProgram}
           />
-          <TextInput
+          <CampoTexto
             autoCapitalize="none"
             onChangeText={setPassword}
             placeholder="Contraseña (mínimo 8 caracteres)"
-            placeholderTextColor={colores.placeholder}
             secureTextEntry
-            style={styles.input}
             value={password}
+          />
+          <CampoTexto
+            autoCapitalize="none"
+            onChangeText={setConfirmation}
+            placeholder="Repite la contraseña"
+            secureTextEntry
+            value={confirmation}
           />
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <Pressable
-            disabled={isSubmitting || !isSupabaseConfigured}
+          <Boton
+            cargando={isSubmitting}
+            deshabilitado={!isSupabaseConfigured}
             onPress={handleSubmit}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              (pressed || isSubmitting || !isSupabaseConfigured) && styles.disabledButton,
-            ]}
-          >
-            <Text style={styles.primaryButtonText}>
-              {isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
-            </Text>
-          </Pressable>
+            titulo="Crear cuenta"
+            tituloCargando="Creando cuenta..."
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -156,25 +147,5 @@ const styles = StyleSheet.create({
   title: { color: colores.titulo, fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 10 },
   description: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 9 },
   configurationNotice: { color: colores.avisoTexto, fontSize: 13, marginTop: 18 },
-  input: {
-    backgroundColor: colores.blanco,
-    borderColor: colores.borde,
-    borderRadius: 12,
-    borderWidth: 1,
-    color: colores.texto,
-    fontSize: 15,
-    height: 52,
-    marginTop: 13,
-    paddingHorizontal: 15,
-  },
   error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },
-  primaryButton: {
-    alignItems: "center",
-    backgroundColor: colores.primario,
-    borderRadius: 12,
-    marginTop: 20,
-    padding: 16,
-  },
-  disabledButton: { opacity: 0.55 },
-  primaryButtonText: { color: colores.blanco, fontSize: 15, fontWeight: "800" },
 });

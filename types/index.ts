@@ -22,13 +22,16 @@ export interface Ubicacion {
   coordenadas: Coordenada;
 }
 
+// Rutas de los archivos dentro del bucket privado `documentos-vehiculos`
+// (<id_usuario>/<id_vehiculo>/<archivo>). Para verlos se pide una URL firmada.
 export interface DocumentosVehiculo {
-  soatUrl: string;
-  rtmUrl: string; // Revisión Tecnomecánica
-  licenciaConduccionUrl: string;
+  soatPath: string;
+  rtmPath: string; // Revisión Tecnomecánica
+  licenciaConduccionPath: string;
 }
 
 // --- ENTIDADES PRINCIPALES ---
+// Las fechas son cadenas ISO 8601, tal como las devuelve Supabase (timestamptz).
 
 /**
  * RF1, RF2, RF14: Gestión de Usuarios e Identidad UIS
@@ -43,10 +46,10 @@ export interface Usuario {
   rol: RolUsuario;
   estado: EstadoUsuario;
   correoVerificado: boolean;
-  promedioCalificacion: number; // 1.0 a 5.0
+  promedioCalificacion: number; // 1.0 a 5.0; es 0 mientras no tenga calificaciones
   totalViajes: number;
-  fechaCreacion: Date;
-  fechaActualizacion: Date;
+  fechaCreacion: string;
+  fechaActualizacion: string;
 }
 
 /**
@@ -61,12 +64,12 @@ export interface Vehiculo {
   modelo: number;
   color: string;
   numeroPuestos: number;
-  documentos: DocumentosVehiculo;
+  documentos?: DocumentosVehiculo; // ausente si aún no se cargaron
   estadoHabilitacion: EstadoHabilitacionVehiculo;
   motivoRechazo?: string;
   revisadoPorAdminId?: string; // ID del Administrador que aprueba/rechaza
-  fechaRegistro: Date;
-  fechaRevision?: Date;
+  fechaRegistro: string;
+  fechaRevision?: string;
 }
 
 /**
@@ -80,18 +83,18 @@ export interface Viaje {
   destino: Ubicacion;
   paradasIntermedias?: Ubicacion[];
   trazadoRuta: Coordenada[]; // Secuencia de coordenadas devueltas por la API externa de rutas
-  fechaHoraSalida: Date;
+  fechaHoraSalida: string;
   franjaHoraria: {
-    inicio: Date;
-    fin: Date;
+    inicio: string;
+    fin: string;
   };
   cuposTotales: number;
   cuposDisponibles: number;
   aporteSugerido: number;
   estado: EstadoViaje;
   motivoCancelacion?: string;
-  fechaCreacion: Date;
-  fechaActualizacion: Date;
+  fechaCreacion: string;
+  fechaActualizacion: string;
 }
 
 /**
@@ -105,8 +108,8 @@ export interface SolicitudCupo {
   distanciaProximidadMetros?: number; // Calculada respecto al trazado de la ruta
   mensajeOpcional?: string;
   estado: EstadoSolicitudCupo;
-  fechaSolicitud: Date;
-  fechaRespuesta?: Date;
+  fechaSolicitud: string;
+  fechaRespuesta?: string;
 }
 
 /**
@@ -119,5 +122,5 @@ export interface Calificacion {
   evaluadoId: string;   // ID del usuario calificado
   puntuacion: number;    // 1 a 5
   comentario?: string;
-  fechaCreacion: Date;
+  fechaCreacion: string;
 }

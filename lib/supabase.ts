@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -43,3 +43,15 @@ export const supabase = createClient(
     },
   },
 );
+
+// En el celular el token solo se renueva mientras la app está en primer
+// plano; así lo recomienda Supabase para React Native.
+if (Platform.OS !== "web" && isSupabaseConfigured) {
+  AppState.addEventListener("change", (estado) => {
+    if (estado === "active") {
+      supabase.auth.startAutoRefresh();
+    } else {
+      supabase.auth.stopAutoRefresh();
+    }
+  });
+}
