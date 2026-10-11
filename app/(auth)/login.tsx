@@ -1,36 +1,51 @@
 import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 
-import { signIn } from "@/services/auth.service";
+import { CorreoSinConfirmarError, reenviarConfirmacion, signIn } from "@/services/auth.service";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { useSesion } from "@/hooks/useSesion";
+import { Boton } from "@/components/Boton";
+import { CampoTexto } from "@/components/CampoTexto";
 import { colores } from "@/constants/colores";
 
 export default function Login() {
+  const { aviso, limpiarAviso } = useSesion();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [sinConfirmar, setSinConfirmar] = useState(false);
+  const [mensajeReenvio, setMensajeReenvio] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
 
   async function handleSubmit() {
     setError("");
+    setSinConfirmar(false);
+    setMensajeReenvio("");
+    limpiarAviso();
     setIsSubmitting(true);
     try {
       // Al iniciar sesión, el layout raíz redirige a /home.
       await signIn(email, password);
     } catch (submitError) {
+      setSinConfirmar(submitError instanceof CorreoSinConfirmarError);
       setError((submitError as Error).message);
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleReenviar() {
+    setReenviando(true);
+    try {
+      await reenviarConfirmacion(email);
+      setMensajeReenvio("Te enviamos un nuevo enlace de confirmación.");
+    } catch (reenvioError) {
+      setMensajeReenvio((reenvioError as Error).message);
+    } finally {
+      setReenviando(false);
     }
   }
 
@@ -55,49 +70,53 @@ export default function Login() {
             </View>
           )}
 
+          {aviso ? (
+            <View style={styles.configurationNotice}>
+              <Text style={styles.configurationText}>{aviso}</Text>
+            </View>
+          ) : null}
+
           <View style={styles.form}>
-            <Text style={styles.label}>Correo institucional</Text>
-            <TextInput
+            <CampoTexto
               autoCapitalize="none"
               autoComplete="email"
+              etiqueta="Correo institucional"
               keyboardType="email-address"
               onChangeText={setEmail}
               placeholder="nombre@uis.edu.co"
-              placeholderTextColor={colores.placeholder}
-              style={styles.input}
               value={email}
             />
 
-            <Text style={styles.label}>Contraseña</Text>
-            <TextInput
+            <CampoTexto
               autoCapitalize="none"
+              etiqueta="Contraseña"
               onChangeText={setPassword}
               placeholder="Tu contraseña"
-              placeholderTextColor={colores.placeholder}
               secureTextEntry
-              style={styles.input}
               value={password}
             />
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSubmitting || !isSupabaseConfigured}
+            {sinConfirmar ? (
+              <Pressable accessibilityRole="button" disabled={reenviando} onPress={handleReenviar}>
+                <Text style={styles.resendLink}>
+                  {reenviando ? "Reenviando..." : "Reenviar correo de confirmación"}
+                </Text>
+              </Pressable>
+            ) : null}
+            {mensajeReenvio ? <Text style={styles.mensaje}>{mensajeReenvio}</Text> : null}
+
+            <Boton
+              cargando={isSubmitting}
+              deshabilitado={!isSupabaseConfigured}
               onPress={handleSubmit}
-              style={({ pressed }) => [
-                styles.primaryButton,
-                (pressed || isSubmitting || !isSupabaseConfigured) &&
-                  styles.disabledButton,
-              ]}
-            >
-              <Text style={styles.primaryButtonText}>
-                {isSubmitting ? "Iniciando sesión..." : "Iniciar sesión"}
-              </Text>
-            </Pressable>
+              titulo="Iniciar sesión"
+              tituloCargando="Iniciando sesión..."
+            />
           </View>
 
-          <Link href="/recuperar" style={styles.link}>
+          <Link href="/recuperar" style={[styles.link, styles.forgotLink]}>
             ¿Olvidaste tu contraseña?
           </Link>
           <View style={styles.registerRow}>
@@ -129,29 +148,12 @@ const styles = StyleSheet.create({
   },
   configurationTitle: { color: colores.avisoTexto, fontSize: 13, fontWeight: "800" },
   configurationText: { color: colores.avisoTexto, fontSize: 12, lineHeight: 18, marginTop: 4 },
-  form: { marginTop: 28 },
-  label: { color: colores.texto, fontSize: 13, fontWeight: "700", marginBottom: 7, marginTop: 15 },
-  input: {
-    backgroundColor: colores.blanco,
-    borderColor: colores.borde,
-    borderRadius: 12,
-    borderWidth: 1,
-    color: colores.texto,
-    fontSize: 15,
-    height: 52,
-    paddingHorizontal: 15,
-  },
+  form: { marginTop: 15 },
   error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },
-  primaryButton: {
-    alignItems: "center",
-    backgroundColor: colores.primario,
-    borderRadius: 12,
-    marginTop: 20,
-    padding: 16,
-  },
-  disabledButton: { opacity: 0.55 },
-  primaryButtonText: { color: colores.blanco, fontSize: 15, fontWeight: "800" },
+  resendLink: { color: colores.primario, fontSize: 13, fontWeight: "800", marginTop: 8 },
   link: { color: colores.primario, fontSize: 14, fontWeight: "800", textAlign: "center" },
+  forgotLink: { marginTop: 20 },
   registerRow: { flexDirection: "row", justifyContent: "center", marginTop: 20 },
   secondaryText: { color: colores.textoSecundario, fontSize: 14 },
+  mensaje: { color: colores.textoSecundario, fontSize: 13, marginTop: 6 },
 });

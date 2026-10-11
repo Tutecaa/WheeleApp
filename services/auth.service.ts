@@ -1,5 +1,5 @@
 import * as Linking from "expo-linking";
-import type { Session } from "@supabase/supabase-js";
+import type { AuthError, Session } from "@supabase/supabase-js";
 
 import { supabase } from "@/lib/supabase";
 import {
@@ -16,8 +16,51 @@ type SignUpInput = {
   password: string;
 };
 
-function getAuthRedirectUrl(): string {
-  return Linking.createURL("auth/callback");
+// Tipo de enlace que llega por correo; `auth/callback` lo usa para saber
+// qué mensaje mostrar si no puede canjear el código.
+export type TipoEnlace = "confirmacion" | "recuperacion";
+
+// Se lanza cuando la cuenta existe pero no ha confirmado el correo, para que
+// la pantalla ofrezca reenviar la confirmación.
+export class CorreoSinConfirmarError extends Error {
+  constructor() {
+    super("Confirma tu correo institucional antes de iniciar sesión.");
+    this.name = "CorreoSinConfirmarError";
+  }
+}
+
+function getAuthRedirectUrl(tipo: TipoEnlace): string {
+  return Linking.createURL("auth/callback", { queryParams: { tipo } });
+}
+
+// Convierte los errores de Supabase Auth en mensajes en español.
+function traducirError(error: AuthError): string {
+  const mensaje = error.message.toLowerCase();
+
+  if (error.code === "user_already_exists" || mensaje.includes("already registered")) {
+    return "Este correo ya está registrado. Si olvidaste tu contraseña, recupérala desde el inicio de sesión.";
+  }
+  if (error.code === "unexpected_failure" || mensaje.includes("database error saving new user")) {
+    return "No se pudo crear la cuenta. Revisa que tu código institucional no esté registrado en otra cuenta.";
+  }
+  if (error.name === "AuthSessionMissingError" || mensaje.includes("session missing")) {
+    return "El enlace expiró. Solicita uno nuevo.";
+  }
+  if (error.code === "same_password") {
+    return "La nueva contraseña debe ser diferente a la anterior.";
+  }
+  if (error.code === "weak_password") {
+    return "La contraseña es muy débil. Usa una más larga o con más variedad de caracteres.";
+  }
+  if (
+    error.status === 429 ||
+    error.code === "over_email_send_rate_limit" ||
+    mensaje.includes("rate limit")
+  ) {
+    return "Hiciste demasiados intentos. Espera unos minutos y vuelve a intentarlo.";
+  }
+
+  return "Ocurrió un error inesperado. Intenta de nuevo.";
 }
 
 function assertRegistrationInput(input: SignUpInput): string | null {
@@ -30,7 +73,7 @@ function assertRegistrationInput(input: SignUpInput): string | null {
   }
 
   if (!isInstitutionalEmail(input.email)) {
-    return "Usa un correo @uis.edu.co o @correo.uis.edu.co.";
+    return "Solo se admiten correos de la UIS (@uis.edu.co o @correo.uis.edu.co).";
   }
 
   if (!input.academicProgram.trim()) {
@@ -50,7 +93,7 @@ export async function signUp(input: SignUpInput) {
     email: normalizeEmail(input.email),
     password: input.password,
     options: {
-      emailRedirectTo: getAuthRedirectUrl(),
+      emailRedirectTo: getAuthRedirectUrl("confirmacion"),
       data: {
         nombre_completo: input.fullName.trim(),
         codigo_institucional: input.institutionalCode.trim(),
@@ -60,7 +103,15 @@ export async function signUp(input: SignUpInput) {
   });
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(traducirError(error));
+  }
+
+  // Con la confirmación por correo activa, Supabase no devuelve error si el
+  // correo ya tiene una cuenta confirmada: devuelve un usuario sin identidades.
+  if (data.user && data.user.identities?.length === 0) {
+    throw new Error(
+      "Este correo ya está registrado. Si olvidaste tu contraseña, recupérala desde el inicio de sesión.",
+    );
   }
 
   return {
@@ -84,9 +135,16 @@ export async function signIn(email: string, password: string): Promise<Session> 
   });
 
   if (error) {
-    if (error.message.toLowerCase().includes("email not confirmed")) {
-      throw new Error("Confirma tu correo institucional antes de iniciar sesión.");
+    if (
+      error.code === "email_not_confirmed" ||
+      error.message.toLowerCase().includes("email not confirmed")
+    ) {
+      throw new CorreoSinConfirmarError();
     }
+    if (error.status === 429) {
+      throw new Error(traducirError(error));
+    }
+    // Mensaje genérico: no se dice cuál de los dos datos falló (RF2).
     throw new Error("No pudimos iniciar sesión. Revisa tus credenciales.");
   }
 
@@ -97,17 +155,33 @@ export async function signIn(email: string, password: string): Promise<Session> 
   return data.session;
 }
 
+export async function reenviarConfirmacion(email: string): Promise<void> {
+  if (!isInstitutionalEmail(email)) {
+    throw new Error("Escribe tu correo institucional.");
+  }
+
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email: normalizeEmail(email),
+    options: { emailRedirectTo: getAuthRedirectUrl("confirmacion") },
+  });
+
+  if (error) {
+    throw new Error(traducirError(error));
+  }
+}
+
 export async function requestPasswordReset(email: string): Promise<void> {
   if (!isInstitutionalEmail(email)) {
     throw new Error("Escribe un correo @uis.edu.co o @correo.uis.edu.co.");
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(normalizeEmail(email), {
-    redirectTo: getAuthRedirectUrl(),
+    redirectTo: getAuthRedirectUrl("recuperacion"),
   });
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(traducirError(error));
   }
 }
 
@@ -119,7 +193,7 @@ export async function updatePassword(password: string): Promise<void> {
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    throw new Error(error.message);
+    throw new Error(traducirError(error));
   }
 }
 

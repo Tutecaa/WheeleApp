@@ -35,11 +35,12 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-example
-
 # generated native folders
 /ios
 /android
 
+# claves locales (.env.example sí se sube como plantilla)
 .env
-.claude/
+
+# configuración local de Claude Code (settings.json sí se sube)
+.claude/settings.local.json

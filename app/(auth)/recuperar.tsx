@@ -1,18 +1,12 @@
 import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 
 import { requestPasswordReset } from "@/services/auth.service";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { Boton } from "@/components/Boton";
+import { CampoTexto } from "@/components/CampoTexto";
 import { colores } from "@/constants/colores";
 
 export default function ForgotPassword() {
@@ -48,7 +42,7 @@ export default function ForgotPassword() {
           <Text style={styles.title}>Recupera tu acceso</Text>
           <Text style={styles.description}>
             Escribe tu correo UIS y te enviaremos un enlace temporal para
-            restablecer tu contraseña.
+            restablecer tu contraseña. Ábrelo en este mismo dispositivo.
           </Text>
 
           {!isSupabaseConfigured && (
@@ -57,12 +51,12 @@ export default function ForgotPassword() {
             </Text>
           )}
 
-          <TextInput
+          <CampoTexto
             autoCapitalize="none"
+            autoComplete="email"
             keyboardType="email-address"
             onChangeText={setEmail}
             placeholder="nombre@uis.edu.co"
-            placeholderTextColor={colores.placeholder}
             style={styles.input}
             value={email}
           />
@@ -72,18 +66,13 @@ export default function ForgotPassword() {
               Si la cuenta existe, recibirás el enlace en tu correo institucional.
             </Text>
           ) : null}
-          <Pressable
-            disabled={isSubmitting || !isSupabaseConfigured}
+          <Boton
+            cargando={isSubmitting}
+            deshabilitado={!isSupabaseConfigured}
             onPress={handleSubmit}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              (pressed || isSubmitting || !isSupabaseConfigured) && styles.disabledButton,
-            ]}
-          >
-            <Text style={styles.primaryButtonText}>
-              {isSubmitting ? "Enviando enlace..." : "Enviar enlace"}
-            </Text>
-          </Pressable>
+            titulo="Enviar enlace"
+            tituloCargando="Enviando enlace..."
+          />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -99,26 +88,7 @@ const styles = StyleSheet.create({
   title: { color: colores.titulo, fontSize: 28, fontWeight: "800", marginTop: 10 },
   description: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 9 },
   configurationNotice: { color: colores.avisoTexto, fontSize: 13, marginTop: 18 },
-  input: {
-    backgroundColor: colores.blanco,
-    borderColor: colores.borde,
-    borderRadius: 12,
-    borderWidth: 1,
-    color: colores.texto,
-    fontSize: 15,
-    height: 52,
-    marginTop: 22,
-    paddingHorizontal: 15,
-  },
+  input: { marginTop: 9 },
   error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },
   success: { color: colores.primario, fontSize: 13, lineHeight: 18, marginTop: 12 },
-  primaryButton: {
-    alignItems: "center",
-    backgroundColor: colores.primario,
-    borderRadius: 12,
-    marginTop: 20,
-    padding: 16,
-  },
-  disabledButton: { opacity: 0.55 },
-  primaryButtonText: { color: colores.blanco, fontSize: 15, fontWeight: "800" },
 });
