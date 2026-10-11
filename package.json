@@ -9,6 +9,7 @@
     "expo": "~57.0.27",
     "expo-constants": "~57.0.21",
     "expo-device": "~57.0.2",
+    "expo-document-picker": "~57.0.3",
     "expo-font": "~57.0.4",
     "expo-glass-effect": "~57.0.4",
     "expo-image": "~57.0.5",
@@ -41,7 +42,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "web:stable": "set NODE_OPTIONS=--max-old-space-size=4096&& expo start --web --port 8081 --clear",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit"
   },
   "private": true
 }

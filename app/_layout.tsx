@@ -34,6 +34,8 @@ function RootNavigator() {
 
       <Stack.Protected guard={haySesion}>
         <Stack.Screen name="home" />
+        <Stack.Screen name="conductor/vehiculo" />
+        <Stack.Screen name="admin/habilitaciones" />
       </Stack.Protected>
 
       {/* Accesibles siempre: llegan desde enlaces del correo. */}
