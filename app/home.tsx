@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { signOut } from "@/services/auth";
+import { signOut } from "@/services/auth.service";
+import { colores } from "@/constants/colores";
 
 export default function Home() {
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -10,8 +11,8 @@ export default function Home() {
   async function handleSignOut() {
     setIsSigningOut(true);
     try {
+      // Al cerrar sesión, el layout raíz redirige a /login.
       await signOut();
-      router.replace("/");
     } catch (error) {
       Alert.alert("No se pudo cerrar la sesión", (error as Error).message);
     } finally {
@@ -44,17 +45,17 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: "#F7F9F8", flex: 1 },
+  safeArea: { backgroundColor: colores.fondo, flex: 1 },
   container: { flex: 1, justifyContent: "center", padding: 28 },
-  brand: { color: "#197B62", fontSize: 14, fontWeight: "800", letterSpacing: 2 },
-  title: { color: "#17211E", fontSize: 30, fontWeight: "800", marginTop: 8 },
-  description: { color: "#68736E", fontSize: 16, lineHeight: 24, marginTop: 12 },
+  brand: { color: colores.primario, fontSize: 14, fontWeight: "800", letterSpacing: 2 },
+  title: { color: colores.titulo, fontSize: 30, fontWeight: "800", marginTop: 8 },
+  description: { color: colores.textoSecundario, fontSize: 16, lineHeight: 24, marginTop: 12 },
   button: {
     alignItems: "center",
-    backgroundColor: "#197B62",
+    backgroundColor: colores.primario,
     borderRadius: 12,
     marginTop: 28,
     padding: 16,
   },
-  buttonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
+  buttonText: { color: colores.blanco, fontSize: 15, fontWeight: "800" },
 });

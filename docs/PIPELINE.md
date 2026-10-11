@@ -58,25 +58,22 @@ Una tarea o historia de usuario se considera "Hecha" cuando:
 
 ---
 
-## 3. Estructura del Repositorio (Propuesta)
+## 3. Estructura del Repositorio
+
+La estructura vigente está definida en `AGENTS.md` (sección "Arquitectura de Carpetas"). Resumen:
 
 ```text
-wheele-app/
-├── .github/                # Workflows de CI/CD (GitHub Actions)
-├── docs/                   # Documentación técnica y ADRs (Architecture Decision Records)
-├── mobile/                 # Código fuente de la aplicación móvil (Flutter/React Native)
-│   ├── src/
-│   │   ├── core/           # Utilidades, servicios comunes, constantes
-│   │   ├── features/       # Módulos por funcionalidad (auth, map, trips, profile)
-│   │   ├── ui/             # Componentes visuales compartidos
-│   │   └── assets/         # Imágenes, fuentes, iconos
-├── backend/                # API REST y base de datos (Node.js/Python/Go)
-│   ├── src/
-│   │   ├── controllers/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   └── services/       # Lógica de negocio (ej. integración OpenRouteService)
-└── proto/                  # Prototipo inicial (HTML/JS/Leaflet) para referencia
+wheel-e/
+├── app/                    # Pantallas (Expo Router)
+├── services/               # Funciones que hablan con Supabase / OpenRouteService
+├── components/             # Piezas reutilizables de interfaz
+├── lib/                    # Cliente de Supabase
+├── utils/                  # Validaciones y formato
+├── constants/              # Colores y configuración
+├── hooks/                  # useSesion y otros hooks
+├── types/                  # Tipos del dominio
+├── supabase/migrations/    # Esquema de base de datos en SQL
+└── docs/                   # Documentación del proyecto
 ```
 
 ---

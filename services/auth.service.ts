@@ -6,7 +6,7 @@ import {
   isInstitutionalEmail,
   normalizeEmail,
   validatePassword,
-} from "@/utils/auth-validation";
+} from "@/utils/validaciones";
 
 type SignUpInput = {
   fullName: string;
