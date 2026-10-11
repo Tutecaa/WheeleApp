@@ -1,56 +1,65 @@
-# Welcome to your Expo app 👋
+# WHEEL-E
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicación móvil de viajes compartidos para la comunidad de la Universidad Industrial de Santander (UIS). Está hecha con Expo (React Native + TypeScript + Expo Router) y Supabase (Auth, PostgreSQL con RLS y Storage).
 
-## Get started
+El contexto, los requerimientos y el backlog están en [docs/contexto-proyecto.md](docs/contexto-proyecto.md). La estructura del código y las reglas para los asistentes están en [AGENTS.md](AGENTS.md).
 
-1. Install dependencies
+## Requisitos
 
-   ```bash
-   npm install
-   ```
+- Node.js en su versión LTS, y npm.
+- La app **Expo Go** en el celular (Android o iOS), o un emulador.
+- Acceso al proyecto de Supabase del equipo.
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Instalación
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Copia `.env.example` como `.env` y completa las claves:
 
-### Other setup steps
+```bash
+EXPO_PUBLIC_SUPABASE_URL=https://<proyecto>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+EXPO_PUBLIC_ORS_API_KEY=<clave de OpenRouteService>
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+En la app solo va la **anon key**. La `service_role` key nunca se pone en `.env` ni en el código.
 
-## Learn more
+## Configurar Supabase
 
-To learn more about developing your project with Expo, look at the following resources:
+1. **Migraciones.** Ejecuta en orden, en el SQL Editor, cada archivo de [supabase/migrations/](supabase/migrations/) que aún no esté aplicado (`001`, `002`, `003`, …). Una migración ya aplicada no se edita: los cambios van en un archivo nuevo.
+2. **Redirect URLs.** En *Authentication → URL Configuration*, agrega estas URLs para que funcionen los enlaces de confirmación y recuperación:
+   - `wheele://**` (app instalada / development build)
+   - `exp://**` (Expo Go)
+   - `http://localhost:8081/**` (web, en desarrollo)
+3. **Primer administrador.** Regístrate en la app, confirma el correo y ejecuta en el SQL Editor:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+   ```sql
+   update public.profiles
+   set rol = 'administrador'
+   where correo_institucional = 'tu-correo@uis.edu.co';
+   ```
 
-## Join the community
+   Cierra sesión y vuelve a entrar: en el inicio aparece **Revisar habilitaciones**.
 
-Join our community of developers creating universal apps.
+## Comandos
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npm start            # servidor de desarrollo (escanea el QR con Expo Go)
+npm run android      # abrir en emulador Android
+npm run web          # abrir en el navegador
+npm run lint         # ESLint
+npm run typecheck    # TypeScript
+npx expo-doctor      # revisar dependencias y configuración
+```
+
+Antes de hacer commit, `npm run lint` y `npm run typecheck` deben pasar sin errores.
+
+Las librerías se instalan con `npx expo install <paquete>`, no con `npm install`, para que la versión sea compatible con el SDK de Expo.
+
+## Estado actual (Sprint 1)
+
+- Registro con correo institucional, confirmación por correo, inicio de sesión y recuperación de contraseña (WE-7, WE-10, WE-11, WE-12).
+- Registro de vehículo y solicitud de habilitación como conductor (WE-14).
+- Revisión de habilitaciones por el administrador (WE-15).
