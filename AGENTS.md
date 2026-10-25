@@ -128,8 +128,6 @@ wheel-e/
 │   ├── contexto-proyecto.md      ← contexto, requerimientos y backlog del proyecto
 │   └── prototipo-rutas-bucaramanga.html  ← prototipo del trazado de rutas
 │
-├── diagramas/                    ← diagramas UML (.puml y .png)
-│
 ├── assets/                       ← logo, íconos, imágenes
 ├── AGENTS.md                     ← instrucciones para Claude Code
 ├── .env                          ← claves secretas (NO se sube a GitHub)

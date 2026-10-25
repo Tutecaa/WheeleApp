@@ -506,8 +506,6 @@ Prioridad de 1 a 5, donde 5 es la más alta.
 
 Total: 19 historias, 90 story points. Para estimar se usa 1 SP ≈ 2 horas.
 
-**Además**, la EDT incluye el entregable **"Inicio y finalización del viaje" (4 h)**, necesario porque RF13 exige que el viaje esté finalizado. Si aún no existe en Jira, hay que crearlo.
-
 **Orden de dependencias:**
 
 1. Cuentas (Sprint 1).
