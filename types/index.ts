@@ -107,6 +107,26 @@ export interface Viaje {
 }
 
 /**
+ * RF7: Un viaje en la lista de "Mis viajes", sin el trazado.
+ */
+export type RolEnViaje = 'conductor' | 'pasajero';
+
+export interface ResumenViaje {
+  id: string;
+  rol: RolEnViaje;
+  origenNombre?: string;
+  destinoNombre?: string;
+  numeroParadas: number;
+  fechaHoraSalida: string;
+  cuposTotales: number;
+  cuposDisponibles: number;
+  aporteSugerido: number;
+  distanciaMetros: number;
+  duracionSegundos: number;
+  estado: EstadoViaje;
+}
+
+/**
  * RF10, RF11, RF12: Reserva, Solicitud y Cancelación de Cupos
  */
 export interface SolicitudCupo {

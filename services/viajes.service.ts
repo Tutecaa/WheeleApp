@@ -1,8 +1,20 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 
 import { supabase } from "@/lib/supabase";
-import { LONGITUD_MAXIMA_NOMBRE_LUGAR, PARADAS_MAXIMAS } from "@/constants/config";
-import type { Coordenada, EstadoViaje, TrazadoRuta, Ubicacion, Vehiculo, Viaje } from "@/types";
+import {
+  LONGITUD_MAXIMA_MOTIVO_CANCELACION,
+  LONGITUD_MAXIMA_NOMBRE_LUGAR,
+  PARADAS_MAXIMAS,
+} from "@/constants/config";
+import type {
+  Coordenada,
+  EstadoViaje,
+  ResumenViaje,
+  TrazadoRuta,
+  Ubicacion,
+  Vehiculo,
+  Viaje,
+} from "@/types";
 import { validarPuntosViaje, validarSalidaViaje, type DatosSalidaViaje } from "@/utils/validaciones";
 
 export type DatosPublicacion = DatosSalidaViaje & {
@@ -102,8 +114,8 @@ function traducirError(error: PostgrestError, porDefecto: string): string {
   return porDefecto;
 }
 
-// RF4: publica el viaje con su trazado. Devuelve el id del viaje.
-export async function publicarViaje(datos: DatosPublicacion): Promise<string> {
+// Validaciones de RF4 que comparten publicar y modificar (RF6).
+function validarDatos(datos: DatosPublicacion, cuposReservados = 0) {
   const errorPuntos = validarPuntosViaje(datos.origen.coordenadas, datos.destino.coordenadas);
   if (errorPuntos) throw new Error(errorPuntos);
   if (datos.paradas.length > PARADAS_MAXIMAS) {
@@ -112,12 +124,40 @@ export async function publicarViaje(datos: DatosPublicacion): Promise<string> {
   if (datos.vehiculo.estadoHabilitacion !== "aprobado") {
     throw new Error("El vehículo elegido aún no está aprobado.");
   }
-  const errorSalida = validarSalidaViaje(datos, datos.vehiculo.numeroPuestos);
+  const errorSalida = validarSalidaViaje(datos, datos.vehiculo.numeroPuestos, cuposReservados);
   if (errorSalida) throw new Error(errorSalida);
   // No se publica un viaje sin trazado (RF5).
   if (datos.trazado.coordenadas.length < 2) {
     throw new Error("Falta el trazado de la ruta. Vuelve al mapa para calcularlo.");
   }
+}
+
+// Columnas del recorrido: se envían al publicar, o al modificar si el recorrido cambió.
+function columnasRecorrido(datos: DatosPublicacion) {
+  return {
+    origen: puntoEwkt(datos.origen.coordenadas),
+    destino: puntoEwkt(datos.destino.coordenadas),
+    paradas: datos.paradas.map(({ latitud, longitud }) => ({ latitud, longitud })),
+    trazado: lineaEwkt(datos.trazado.coordenadas),
+    distancia_metros: datos.trazado.distanciaMetros,
+    duracion_segundos: datos.trazado.duracionSegundos,
+  };
+}
+
+function columnasSalida(datos: DatosPublicacion) {
+  return {
+    vehiculo_id: datos.vehiculo.id,
+    origen_nombre: limpiarNombre(datos.origen.nombre),
+    destino_nombre: limpiarNombre(datos.destino.nombre),
+    fecha_hora_salida: datos.fechaHoraSalida!.toISOString(),
+    cupos_totales: Number(datos.cupos),
+    aporte_sugerido: datos.aporte.trim() ? Number(datos.aporte) : 0,
+  };
+}
+
+// RF4: publica el viaje con su trazado. Devuelve el id del viaje.
+export async function publicarViaje(datos: DatosPublicacion): Promise<string> {
+  validarDatos(datos);
 
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) {
@@ -128,20 +168,10 @@ export async function publicarViaje(datos: DatosPublicacion): Promise<string> {
     .from("trips")
     .insert({
       conductor_id: auth.user.id,
-      vehiculo_id: datos.vehiculo.id,
-      origen: puntoEwkt(datos.origen.coordenadas),
-      origen_nombre: limpiarNombre(datos.origen.nombre),
-      destino: puntoEwkt(datos.destino.coordenadas),
-      destino_nombre: limpiarNombre(datos.destino.nombre),
-      paradas: datos.paradas.map(({ latitud, longitud }) => ({ latitud, longitud })),
-      trazado: lineaEwkt(datos.trazado.coordenadas),
-      distancia_metros: datos.trazado.distanciaMetros,
-      duracion_segundos: datos.trazado.duracionSegundos,
-      fecha_hora_salida: datos.fechaHoraSalida!.toISOString(),
-      cupos_totales: Number(datos.cupos),
+      ...columnasSalida(datos),
+      ...columnasRecorrido(datos),
       // El trigger lo iguala a cupos_totales; se envía porque la columna es obligatoria.
       cupos_disponibles: Number(datos.cupos),
-      aporte_sugerido: datos.aporte.trim() ? Number(datos.aporte) : 0,
     })
     .select("id")
     .single<{ id: string }>();
@@ -169,4 +199,112 @@ export async function obtenerViaje(id: string): Promise<Viaje> {
     throw new Error("Este viaje no existe o no tienes acceso a él.");
   }
   return aViaje(data);
+}
+
+const MENSAJE_YA_NO_EDITABLE =
+  "Este viaje ya inició, finalizó o fue cancelado, así que no se puede modificar. Actualiza la pantalla.";
+
+// RF6: modifica un viaje que no ha iniciado. Si el recorrido no cambió, se
+// conserva el trazado guardado y no se envía de nuevo (RF5).
+export async function modificarViaje(
+  viaje: Viaje,
+  datos: DatosPublicacion,
+  recorridoCambio: boolean,
+): Promise<void> {
+  validarDatos(datos, viaje.cuposTotales - viaje.cuposDisponibles);
+
+  const { data, error } = await supabase
+    .from("trips")
+    .update({
+      ...columnasSalida(datos),
+      ...(recorridoCambio ? columnasRecorrido(datos) : {}),
+    })
+    .eq("id", viaje.id)
+    .eq("estado", "publicado")
+    .select("id");
+
+  if (error) {
+    throw new Error(traducirError(error, "No se pudieron guardar los cambios. Intenta de nuevo."));
+  }
+  if (data.length === 0) {
+    throw new Error(MENSAJE_YA_NO_EDITABLE);
+  }
+}
+
+// RF6: cancela un viaje que no ha iniciado. Deja de aparecer en las búsquedas,
+// que solo incluyen viajes publicados.
+export async function cancelarViaje(viajeId: string, motivo: string): Promise<void> {
+  const motivoLimpio = motivo.trim();
+  if (motivoLimpio.length < 3) {
+    throw new Error("Escribe el motivo de la cancelación.");
+  }
+  if (motivoLimpio.length > LONGITUD_MAXIMA_MOTIVO_CANCELACION) {
+    throw new Error(`El motivo puede tener hasta ${LONGITUD_MAXIMA_MOTIVO_CANCELACION} caracteres.`);
+  }
+
+  const { data, error } = await supabase
+    .from("trips")
+    .update({ estado: "cancelado", motivo_cancelacion: motivoLimpio })
+    .eq("id", viajeId)
+    .eq("estado", "publicado")
+    .select("id");
+
+  if (error) {
+    throw new Error(traducirError(error, "No se pudo cancelar el viaje. Intenta de nuevo."));
+  }
+  if (data.length === 0) {
+    throw new Error(MENSAJE_YA_NO_EDITABLE);
+  }
+}
+
+// Columnas de public.trips que necesita la lista; el trazado no hace falta.
+type ResumenFila = {
+  id: string;
+  origen_nombre: string | null;
+  destino_nombre: string | null;
+  paradas: Coordenada[];
+  fecha_hora_salida: string;
+  cupos_totales: number;
+  cupos_disponibles: number;
+  aporte_sugerido: number;
+  distancia_metros: number;
+  duracion_segundos: number;
+  estado: EstadoViaje;
+};
+
+// RF7: viajes en los que participa el usuario. Por ahora solo como conductor;
+// los viajes como pasajero se agregan con las reservas de cupo (Sprint 4).
+export async function obtenerMisViajes(): Promise<ResumenViaje[]> {
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) {
+    throw new Error("No hay una sesión activa.");
+  }
+
+  const { data, error } = await supabase
+    .from("trips")
+    .select(
+      "id, origen_nombre, destino_nombre, paradas, fecha_hora_salida, cupos_totales, cupos_disponibles, aporte_sugerido, distancia_metros, duracion_segundos, estado",
+    )
+    .eq("conductor_id", auth.user.id)
+    .order("fecha_hora_salida", { ascending: true })
+    .returns<ResumenFila[]>();
+
+  if (error) {
+    throw new Error("No se pudieron cargar tus viajes.");
+  }
+
+  return data.map((fila) => ({
+    id: fila.id,
+    rol: "conductor",
+    origenNombre: fila.origen_nombre ?? undefined,
+    destinoNombre: fila.destino_nombre ?? undefined,
+    numeroParadas: fila.paradas.length,
+    fechaHoraSalida: fila.fecha_hora_salida,
+    cuposTotales: fila.cupos_totales,
+    cuposDisponibles: fila.cupos_disponibles,
+    aporteSugerido: fila.aporte_sugerido,
+    distanciaMetros: fila.distancia_metros,
+    duracionSegundos: fila.duracion_segundos,
+    estado: fila.estado,
+  }));
 }

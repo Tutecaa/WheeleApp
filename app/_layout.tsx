@@ -35,6 +35,7 @@ function RootNavigator() {
       <Stack.Protected guard={haySesion}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="viaje/[id]" />
+        <Stack.Screen name="viaje/editar/[id]" />
         <Stack.Screen name="conductor/vehiculo" />
         <Stack.Screen name="admin/habilitaciones" />
       </Stack.Protected>

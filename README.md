@@ -66,7 +66,10 @@ Sprint 1:
 - Registro de vehículo y solicitud de habilitación como conductor (WE-14).
 - Revisión de habilitaciones por el administrador (WE-15).
 
-Sprint 2 (en curso):
+Sprint 2 (requiere las migraciones `004_viajes.sql` y `005_ajustes_viajes.sql`):
 
 - Barra inferior con las pestañas Buscar, Publicar, Mis viajes y Perfil.
-- Publicar un viaje marcando origen, paradas y destino en el mapa (WE-16), con el trazado por calles de OpenRouteService guardado en PostGIS (WE-17). Requiere la migración `004_viajes.sql`.
+- Publicar un viaje marcando origen, paradas y destino en el mapa (WE-16), con el trazado por calles de OpenRouteService guardado en PostGIS (WE-17).
+- Modificar un viaje que no ha iniciado; el trazado solo se recalcula si cambian los puntos (WE-18).
+- Cancelar un viaje con su motivo (WE-19).
+- Mis viajes: próximos e historial, como conductor o como pasajero (WE-20). Los viajes como pasajero aparecerán con las reservas de cupo (Sprint 4).

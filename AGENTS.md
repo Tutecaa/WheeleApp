@@ -66,6 +66,7 @@ wheel-e/
 │   │   └── perfil.tsx            ← mi propio perfil
 │   │
 │   ├── viaje/[id].tsx            ← detalle de un viaje (el [id] cambia por viaje)
+│   ├── viaje/editar/[id].tsx     ← modificar un viaje publicado (RF6)
 │   ├── usuario/[id].tsx          ← perfil público de otro usuario (RF14)
 │   ├── solicitudes.tsx           ← solicitudes recibidas (conductor)
 │   ├── calificar/[id].tsx        ← calificar participantes de un viaje
@@ -90,6 +91,7 @@ wheel-e/
 ├── components/                   ← PIEZAS REUTILIZABLES DE INTERFAZ
 │   ├── Boton.tsx
 │   ├── CampoTexto.tsx
+│   ├── FormularioViaje.tsx       ← pasos de mapa y datos; lo usan publicar y editar viaje
 │   ├── CampoFechaHora.tsx        ← fecha y hora con el selector nativo (.web.tsx: input del navegador)
 │   ├── Mapa.tsx                  ← mapa OSM (Leaflet en un WebView) para marcar puntos y dibujar rutas
 │   ├── Mapa.web.tsx              ← el mismo mapa en web, dentro de un iframe
@@ -121,10 +123,11 @@ wheel-e/
 │       ├── 002_vehiculos_y_habilitacion.sql
 │       ├── 003_ajustes_habilitacion.sql  ← ajustes a 001/002 (ya aplicadas)
 │       ├── 004_viajes.sql
-│       ├── 005_solicitudes.sql
-│       ├── 006_calificaciones.sql
-│       ├── 007_notificaciones.sql
-│       └── 008_busqueda_proximidad.sql   ← función PostGIS de distancia
+│       ├── 005_ajustes_viajes.sql        ← ajustes a 004 (ya aplicada) para modificar y cancelar
+│       ├── 006_solicitudes.sql
+│       ├── 007_calificaciones.sql
+│       ├── 008_notificaciones.sql
+│       └── 009_busqueda_proximidad.sql   ← función PostGIS de distancia
 │
 ├── docs/
 │   ├── contexto-proyecto.md      ← contexto, requerimientos y backlog del proyecto

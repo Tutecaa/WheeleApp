@@ -1,25 +1,33 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 
-import { obtenerViaje } from "@/services/viajes.service";
+import { cancelarViaje, obtenerViaje } from "@/services/viajes.service";
+import { useSesion } from "@/hooks/useSesion";
+import { Boton } from "@/components/Boton";
+import { CampoTexto } from "@/components/CampoTexto";
 import { Mapa, type PuntoMapa } from "@/components/Mapa";
+import { etiquetaEstado, nombreLugar, salidaVencida } from "@/components/TarjetaViaje";
 import { colores } from "@/constants/colores";
-import type { EstadoViaje, Viaje } from "@/types";
+import { LONGITUD_MAXIMA_MOTIVO_CANCELACION } from "@/constants/config";
+import type { Viaje } from "@/types";
+import { confirmar } from "@/utils/confirmar";
 import {
   formatearAporte,
   formatearDistancia,
   formatearDuracion,
   formatearFechaHora,
 } from "@/utils/formato";
-
-const ESTADOS: Record<EstadoViaje, { texto: string; color: string; fondo: string }> = {
-  publicado: { texto: "Publicado", color: colores.blanco, fondo: colores.primario },
-  en_curso: { texto: "En curso", color: colores.avisoTexto, fondo: colores.avisoFondo },
-  finalizado: { texto: "Finalizado", color: colores.textoSecundario, fondo: colores.borde },
-  cancelado: { texto: "Cancelado", color: colores.blanco, fondo: colores.error },
-};
 
 function puntosDelViaje(viaje: Viaje): PuntoMapa[] {
   return [
@@ -33,30 +41,68 @@ function puntosDelViaje(viaje: Viaje): PuntoMapa[] {
   ];
 }
 
-// Detalle de un viaje. Por ahora lo ve el conductor que lo publicó; la vista
-// del pasajero (RF9) se completa en el Sprint 3.
+// Detalle de un viaje. El conductor que lo publicó puede modificarlo o
+// cancelarlo mientras no haya iniciado (RF6). La vista del pasajero (RF9)
+// se completa en el Sprint 3.
 export default function DetalleViaje() {
-  const { id, publicado } = useLocalSearchParams<{ id: string; publicado?: string }>();
+  const { id, aviso } = useLocalSearchParams<{ id: string; aviso?: string }>();
+  const { perfil } = useSesion();
   const [viaje, setViaje] = useState<Viaje | null>(null);
   const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState(aviso === "publicado" ? "¡Tu viaje quedó publicado!" : "");
 
-  useEffect(() => {
-    let activo = true;
-    obtenerViaje(id)
-      .then((encontrado) => {
-        if (activo) setViaje(encontrado);
-      })
-      .catch((cargaError: Error) => {
-        if (activo) setError(cargaError.message);
-      });
-    return () => {
-      activo = false;
-    };
+  const [cancelando, setCancelando] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [errorCancelar, setErrorCancelar] = useState("");
+  const [procesando, setProcesando] = useState(false);
+
+  const cargar = useCallback(async () => {
+    try {
+      setViaje(await obtenerViaje(id));
+      setError("");
+    } catch (cargaError) {
+      setError((cargaError as Error).message);
+    }
   }, [id]);
+
+  // Se recarga al volver de editar.
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+    }, [cargar]),
+  );
 
   function volver() {
     if (router.canGoBack()) router.back();
     else router.replace("/mis-viajes");
+  }
+
+  async function confirmarCancelacion() {
+    if (!viaje) return;
+    setErrorCancelar("");
+    if (motivo.trim().length < 3) {
+      setErrorCancelar("Escribe el motivo de la cancelación.");
+      return;
+    }
+    const ok = await confirmar(
+      "Cancelar viaje",
+      "El viaje dejará de aparecer en las búsquedas y no podrás reactivarlo.",
+      "Cancelar viaje",
+    );
+    if (!ok) return;
+
+    setProcesando(true);
+    try {
+      await cancelarViaje(viaje.id, motivo);
+      setCancelando(false);
+      setMotivo("");
+      setMensaje("Cancelaste el viaje.");
+    } catch (cancelarError) {
+      setErrorCancelar((cancelarError as Error).message);
+    } finally {
+      setProcesando(false);
+    }
+    await cargar();
   }
 
   if (!viaje) {
@@ -76,64 +122,133 @@ export default function DetalleViaje() {
     );
   }
 
-  const estado = ESTADOS[viaje.estado];
+  const estado = etiquetaEstado(viaje);
+  const esConductor = perfil?.id === viaje.conductorId;
+  // RF6: solo se modifica o cancela un viaje que no ha iniciado.
+  const modificable = esConductor && viaje.estado === "publicado";
+  const reservas = viaje.cuposTotales - viaje.cuposDisponibles;
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.container}>
-          <Pressable accessibilityRole="link" onPress={volver}>
-            <Text style={styles.backLink}>← Volver</Text>
-          </Pressable>
-          {publicado ? (
-            <Text style={styles.mensaje}>¡Tu viaje quedó publicado!</Text>
-          ) : null}
-          <View style={styles.encabezado}>
-            <Text style={styles.title}>{formatearFechaHora(viaje.fechaHoraSalida)}</Text>
-            <Text style={[styles.estado, { backgroundColor: estado.fondo, color: estado.color }]}>
-              {estado.texto}
-            </Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.flex}
+      >
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.container}>
+            <Pressable accessibilityRole="link" onPress={volver}>
+              <Text style={styles.backLink}>← Volver</Text>
+            </Pressable>
+            {mensaje ? <Text style={styles.mensaje}>{mensaje}</Text> : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <View style={styles.encabezado}>
+              <Text style={styles.title}>{formatearFechaHora(viaje.fechaHoraSalida)}</Text>
+              <Text style={[styles.estado, { backgroundColor: estado.fondo, color: estado.color }]}>
+                {estado.texto}
+              </Text>
+            </View>
           </View>
-        </View>
 
-        <Mapa
-          puntos={puntosDelViaje(viaje)}
-          style={styles.mapa}
-          trazado={viaje.trazadoRuta}
-        />
+          <Mapa puntos={puntosDelViaje(viaje)} style={styles.mapa} trazado={viaje.trazadoRuta} />
 
-        <View style={styles.container}>
-          <View style={styles.tarjeta}>
-            <Fila etiqueta="A · Origen" valor={viaje.origen.nombre ?? "Punto marcado en el mapa"} />
-            {viaje.paradasIntermedias.length > 0 ? (
+          <View style={styles.container}>
+            <View style={styles.tarjeta}>
+              <Fila etiqueta="A · Origen" valor={nombreLugar(viaje.origen.nombre)} />
+              {viaje.paradasIntermedias.length > 0 ? (
+                <Fila
+                  etiqueta="Paradas"
+                  valor={`${viaje.paradasIntermedias.length} intermedia${viaje.paradasIntermedias.length === 1 ? "" : "s"}`}
+                />
+              ) : null}
+              <Fila etiqueta="B · Destino" valor={nombreLugar(viaje.destino.nombre)} />
               <Fila
-                etiqueta="Paradas"
-                valor={`${viaje.paradasIntermedias.length} intermedia${viaje.paradasIntermedias.length === 1 ? "" : "s"}`}
+                etiqueta="Recorrido"
+                valor={`${formatearDistancia(viaje.distanciaMetros)} · unos ${formatearDuracion(viaje.duracionSegundos)}`}
               />
-            ) : null}
-            <Fila etiqueta="B · Destino" valor={viaje.destino.nombre ?? "Punto marcado en el mapa"} />
-            <Fila
-              etiqueta="Recorrido"
-              valor={`${formatearDistancia(viaje.distanciaMetros)} · unos ${formatearDuracion(viaje.duracionSegundos)}`}
-            />
-          </View>
+            </View>
 
-          <View style={styles.tarjeta}>
-            <Fila etiqueta="Cupos disponibles" valor={`${viaje.cuposDisponibles} de ${viaje.cuposTotales}`} />
-            <Fila etiqueta="Aporte sugerido" valor={formatearAporte(viaje.aporteSugerido)} />
-            {viaje.vehiculo ? (
-              <Fila
-                etiqueta="Vehículo"
-                valor={`${viaje.vehiculo.placa} · ${viaje.vehiculo.marca} ${viaje.vehiculo.linea} · ${viaje.vehiculo.color}`}
-              />
+            <View style={styles.tarjeta}>
+              <Fila etiqueta="Cupos disponibles" valor={`${viaje.cuposDisponibles} de ${viaje.cuposTotales}`} />
+              <Fila etiqueta="Aporte sugerido" valor={formatearAporte(viaje.aporteSugerido)} />
+              {viaje.vehiculo ? (
+                <Fila
+                  etiqueta="Vehículo"
+                  valor={`${viaje.vehiculo.placa} · ${viaje.vehiculo.marca} ${viaje.vehiculo.linea} · ${viaje.vehiculo.color}`}
+                />
+              ) : null}
+            </View>
+
+            {viaje.estado === "cancelado" && viaje.motivoCancelacion ? (
+              <Text style={styles.nota}>Motivo de la cancelación: {viaje.motivoCancelacion}</Text>
+            ) : null}
+            {esConductor && (viaje.estado === "en_curso" || viaje.estado === "finalizado") ? (
+              <Text style={styles.nota}>Este viaje ya inició, así que no se puede modificar ni cancelar.</Text>
+            ) : null}
+            {modificable && salidaVencida(viaje) ? (
+              <Text style={styles.nota}>
+                La hora de salida ya pasó. Edita el viaje para elegir una nueva fecha o cancélalo.
+              </Text>
+            ) : null}
+
+            {modificable && !cancelando ? (
+              <>
+                <Boton
+                  onPress={() => router.push({ pathname: "/viaje/editar/[id]", params: { id: viaje.id } })}
+                  titulo="Editar viaje"
+                  variante="secundario"
+                />
+                <Boton
+                  onPress={() => {
+                    setMensaje("");
+                    setCancelando(true);
+                  }}
+                  titulo="Cancelar viaje"
+                  variante="peligro"
+                />
+              </>
+            ) : null}
+
+            {modificable && cancelando ? (
+              <View style={styles.cancelacion}>
+                <Text style={styles.subtitulo}>Cancelar viaje</Text>
+                {reservas > 0 ? (
+                  <Text style={styles.nota}>
+                    Este viaje tiene {reservas} reserva{reservas === 1 ? "" : "s"} confirmada
+                    {reservas === 1 ? "" : "s"}. Tus pasajeros verán el motivo.
+                  </Text>
+                ) : null}
+                <CampoTexto
+                  etiqueta="Motivo de la cancelación"
+                  maxLength={LONGITUD_MAXIMA_MOTIVO_CANCELACION}
+                  multiline
+                  onChangeText={setMotivo}
+                  placeholder="Ej.: se me presentó un imprevisto con el carro"
+                  style={styles.motivo}
+                  value={motivo}
+                />
+                {errorCancelar ? <Text style={styles.error}>{errorCancelar}</Text> : null}
+                <Boton
+                  cargando={procesando}
+                  onPress={confirmarCancelacion}
+                  titulo="Confirmar cancelación"
+                  tituloCargando="Cancelando..."
+                  variante="peligro"
+                />
+                <Boton
+                  deshabilitado={procesando}
+                  onPress={() => {
+                    setCancelando(false);
+                    setMotivo("");
+                    setErrorCancelar("");
+                  }}
+                  titulo="No cancelar"
+                  variante="secundario"
+                />
+              </View>
             ) : null}
           </View>
-
-          {viaje.estado === "cancelado" && viaje.motivoCancelacion ? (
-            <Text style={styles.error}>Motivo de la cancelación: {viaje.motivoCancelacion}</Text>
-          ) : null}
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -150,6 +265,7 @@ function Fila({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colores.fondo, flex: 1 },
   centrado: { alignItems: "center", justifyContent: "center" },
+  flex: { flex: 1 },
   scroll: { paddingBottom: 40 },
   container: { paddingHorizontal: 24, paddingTop: 16 },
   backLink: { color: colores.primario, fontSize: 14, fontWeight: "700", marginBottom: 16 },
@@ -162,6 +278,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   title: { color: colores.titulo, flex: 1, fontSize: 22, fontWeight: "800", lineHeight: 28 },
+  subtitulo: { color: colores.titulo, fontSize: 18, fontWeight: "800" },
   estado: {
     borderRadius: 8,
     fontSize: 12,
@@ -176,12 +293,22 @@ const styles = StyleSheet.create({
     borderColor: colores.borde,
     borderRadius: 14,
     borderWidth: 1,
-    marginTop: 4,
     marginBottom: 12,
+    marginTop: 4,
     padding: 14,
   },
   fila: { paddingVertical: 6 },
   filaEtiqueta: { color: colores.textoSecundario, fontSize: 12, fontWeight: "700" },
   filaValor: { color: colores.texto, fontSize: 15, marginTop: 2 },
-  error: { color: colores.error, fontSize: 14, lineHeight: 20, marginBottom: 12 },
+  nota: { color: colores.textoSecundario, fontSize: 14, lineHeight: 20, marginTop: 6 },
+  cancelacion: {
+    backgroundColor: colores.blanco,
+    borderColor: colores.borde,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 12,
+    padding: 16,
+  },
+  motivo: { height: 96, paddingTop: 12, textAlignVertical: "top" },
+  error: { color: colores.error, fontSize: 14, lineHeight: 20, marginTop: 8 },
 });

@@ -40,6 +40,7 @@ export const ESPERA_RECALCULO_TRAZADO_MS = 800;
 export const PARADAS_MAXIMAS = 5;
 export const APORTE_SUGERIDO_MAXIMO = 50000; // pesos por pasajero
 export const LONGITUD_MAXIMA_NOMBRE_LUGAR = 80; // igual que en 004_viajes.sql
+export const LONGITUD_MAXIMA_MOTIVO_CANCELACION = 300; // igual que en 005_ajustes_viajes.sql
 
 // Igual que en validate_trip (004_viajes.sql).
 export const DISTANCIA_MINIMA_ORIGEN_DESTINO_METROS = 100;

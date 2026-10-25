@@ -117,7 +117,12 @@ export type DatosSalidaViaje = {
 };
 
 // RF4: fecha futura, cupos dentro de la capacidad del vehículo y aporte válido.
-export function validarSalidaViaje(datos: DatosSalidaViaje, puestosVehiculo: number): string | null {
+// Al editar (RF6), `cuposReservados` impide dejar menos cupos que las reservas confirmadas.
+export function validarSalidaViaje(
+  datos: DatosSalidaViaje,
+  puestosVehiculo: number,
+  cuposReservados = 0,
+): string | null {
   if (!datos.fechaHoraSalida) return "Elige la fecha y la hora de salida.";
   if (datos.fechaHoraSalida.getTime() <= Date.now()) {
     return "La fecha y hora de salida ya pasaron. Elige una futura.";
@@ -126,6 +131,9 @@ export function validarSalidaViaje(datos: DatosSalidaViaje, puestosVehiculo: num
   const cupos = Number(datos.cupos);
   if (!datos.cupos.trim() || !Number.isInteger(cupos) || cupos < 1 || cupos > puestosVehiculo) {
     return `Los cupos deben estar entre 1 y ${puestosVehiculo}, los puestos del vehículo.`;
+  }
+  if (cupos < cuposReservados) {
+    return `No puedes dejar menos de ${cuposReservados} cupos: ya hay ${cuposReservados} reservas confirmadas.`;
   }
 
   const aporte = datos.aporte.trim() ? Number(datos.aporte) : 0;
