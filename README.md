@@ -58,8 +58,15 @@ Antes de hacer commit, `npm run lint` y `npm run typecheck` deben pasar sin erro
 
 Las librerías se instalan con `npx expo install <paquete>`, no con `npm install`, para que la versión sea compatible con el SDK de Expo.
 
-## Estado actual (Sprint 1)
+## Estado actual
+
+Sprint 1:
 
 - Registro con correo institucional, confirmación por correo, inicio de sesión y recuperación de contraseña (WE-7, WE-10, WE-11, WE-12).
 - Registro de vehículo y solicitud de habilitación como conductor (WE-14).
 - Revisión de habilitaciones por el administrador (WE-15).
+
+Sprint 2 (en curso):
+
+- Barra inferior con las pestañas Buscar, Publicar, Mis viajes y Perfil.
+- Publicar un viaje marcando origen, paradas y destino en el mapa (WE-16), con el trazado por calles de OpenRouteService guardado en PostGIS (WE-17). Requiere la migración `004_viajes.sql`.

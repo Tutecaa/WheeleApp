@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
@@ -8,7 +8,8 @@ import { useSesion } from "@/hooks/useSesion";
 import { Boton } from "@/components/Boton";
 import { colores } from "@/constants/colores";
 
-export default function Home() {
+// Mi propio perfil. Reemplaza a la pantalla temporal home.tsx del Sprint 1.
+export default function Perfil() {
   const { perfil } = useSesion();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const esAdmin = perfil?.rol === "administrador";
@@ -26,16 +27,17 @@ export default function Home() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.brand}>WHEEL-E</Text>
-        <Text style={styles.title}>
-          {perfil ? `Hola, ${perfil.nombreCompleto.split(" ")[0]}` : "Sesión iniciada"}
-        </Text>
-        <Text style={styles.description}>
-          Tu identidad UIS está verificada. Las funciones de viajes se incorporarán
-          en los siguientes sprints.
-        </Text>
+        <Text style={styles.title}>{perfil ? perfil.nombreCompleto : "Mi perfil"}</Text>
+        {perfil ? (
+          <View style={styles.tarjeta}>
+            <Text style={styles.dato}>{perfil.programaAcademico}</Text>
+            <Text style={styles.datoSecundario}>{perfil.correoInstitucional}</Text>
+            <Text style={styles.datoSecundario}>Código {perfil.codigoInstitucional}</Text>
+          </View>
+        ) : null}
 
         {/* El administrador no publica ni solicita viajes. */}
         {esAdmin ? (
@@ -57,15 +59,24 @@ export default function Home() {
           tituloCargando="Cerrando sesión..."
           variante="secundario"
         />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colores.fondo, flex: 1 },
-  container: { flex: 1, justifyContent: "center", padding: 28 },
+  container: { padding: 28 },
   brand: { color: colores.primario, fontSize: 14, fontWeight: "800", letterSpacing: 2 },
-  title: { color: colores.titulo, fontSize: 30, fontWeight: "800", marginTop: 8 },
-  description: { color: colores.textoSecundario, fontSize: 16, lineHeight: 24, marginTop: 12 },
+  title: { color: colores.titulo, fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 8 },
+  tarjeta: {
+    backgroundColor: colores.blanco,
+    borderColor: colores.borde,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 18,
+    padding: 16,
+  },
+  dato: { color: colores.texto, fontSize: 15, fontWeight: "700" },
+  datoSecundario: { color: colores.textoSecundario, fontSize: 14, marginTop: 4 },
 });

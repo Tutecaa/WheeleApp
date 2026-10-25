@@ -27,7 +27,7 @@ export default function Login() {
     limpiarAviso();
     setIsSubmitting(true);
     try {
-      // Al iniciar sesión, el layout raíz redirige a /home.
+      // Al iniciar sesión, el layout raíz redirige a /buscar.
       await signIn(email, password);
     } catch (submitError) {
       setSinConfirmar(submitError instanceof CorreoSinConfirmarError);

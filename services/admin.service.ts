@@ -72,6 +72,20 @@ export async function listarSolicitudesPendientes(): Promise<SolicitudHabilitaci
   }));
 }
 
+// RF5: veces que se agotó la cuota de OpenRouteService en las últimas `horas`.
+export async function contarErroresServicioRutas(horas = 24): Promise<number> {
+  const desde = new Date(Date.now() - horas * 60 * 60 * 1000).toISOString();
+  const { count, error } = await supabase
+    .from("route_service_errors")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", desde);
+
+  if (error) {
+    throw new Error("No se pudieron consultar los errores del servicio de rutas.");
+  }
+  return count ?? 0;
+}
+
 // URL temporal para ver un documento del bucket privado.
 export async function obtenerUrlDocumento(ruta: string): Promise<string> {
   const { data, error } = await supabase.storage

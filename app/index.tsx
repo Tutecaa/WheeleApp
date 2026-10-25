@@ -8,5 +8,5 @@ export default function Index() {
   // Mientras se carga la sesión sigue visible el splash.
   if (cargando) return null;
 
-  return <Redirect href={session ? "/home" : "/login"} />;
+  return <Redirect href={session ? "/buscar" : "/login"} />;
 }

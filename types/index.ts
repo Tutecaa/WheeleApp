@@ -73,21 +73,30 @@ export interface Vehiculo {
 }
 
 /**
+ * RF5: Trazado del recorrido por las calles, tal como lo devuelve OpenRouteService.
+ */
+export interface TrazadoRuta {
+  coordenadas: Coordenada[];
+  distanciaMetros: number;
+  duracionSegundos: number;
+}
+
+/**
  * RF4, RF5, RF6, RF7, RF8, RF9: Publicación, Rutas y Búsqueda de Viajes
  */
 export interface Viaje {
   id: string;
   conductorId: string;
   vehiculoId: string;
+  // Solo llega si quien consulta puede ver el vehículo (RLS).
+  vehiculo?: Pick<Vehiculo, 'placa' | 'marca' | 'linea' | 'color'>;
   origen: Ubicacion;
   destino: Ubicacion;
-  paradasIntermedias?: Ubicacion[];
+  paradasIntermedias: Ubicacion[];
   trazadoRuta: Coordenada[]; // Secuencia de coordenadas devueltas por la API externa de rutas
+  distanciaMetros: number;
+  duracionSegundos: number;
   fechaHoraSalida: string;
-  franjaHoraria: {
-    inicio: string;
-    fin: string;
-  };
   cuposTotales: number;
   cuposDisponibles: number;
   aporteSugerido: number;

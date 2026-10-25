@@ -16,6 +16,7 @@ import * as WebBrowser from "expo-web-browser";
 
 import {
   aprobarVehiculo,
+  contarErroresServicioRutas,
   listarSolicitudesPendientes,
   obtenerUrlDocumento,
   rechazarVehiculo,
@@ -42,6 +43,7 @@ export default function Habilitaciones() {
   const [refrescando, setRefrescando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
+  const [erroresRutas, setErroresRutas] = useState(0);
 
   // Solicitud en la que se está escribiendo el motivo del rechazo.
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
@@ -56,6 +58,8 @@ export default function Habilitaciones() {
     } catch (cargaError) {
       setError((cargaError as Error).message);
     }
+    // El aviso de la cuota es secundario: si falla, no se muestra.
+    contarErroresServicioRutas().then(setErroresRutas, () => {});
   }, []);
 
   useEffect(() => {
@@ -71,6 +75,12 @@ export default function Habilitaciones() {
       .finally(() => {
         if (activo) setCargando(false);
       });
+    contarErroresServicioRutas().then(
+      (total) => {
+        if (activo) setErroresRutas(total);
+      },
+      () => {},
+    );
     return () => {
       activo = false;
     };
@@ -167,6 +177,13 @@ export default function Habilitaciones() {
                 Desliza hacia abajo para actualizar.
               </Text>
 
+              {erroresRutas > 0 ? (
+                <Text style={styles.avisoRutas}>
+                  Se agotó la cuota de OpenRouteService {erroresRutas}{" "}
+                  {erroresRutas === 1 ? "vez" : "veces"} en las últimas 24 horas. Los
+                  conductores no pudieron trazar sus rutas: revisa el plan o la llave del servicio.
+                </Text>
+              ) : null}
               {mensaje ? <Text style={styles.mensaje}>{mensaje}</Text> : null}
               {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -286,6 +303,17 @@ const styles = StyleSheet.create({
   description: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 9 },
   mensaje: { color: colores.primario, fontSize: 13, fontWeight: "700", lineHeight: 18, marginTop: 12 },
   error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },
+  avisoRutas: {
+    backgroundColor: colores.avisoFondo,
+    borderColor: colores.avisoBorde,
+    borderRadius: 12,
+    borderWidth: 1,
+    color: colores.avisoTexto,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 14,
+    padding: 12,
+  },
   vacio: { color: colores.textoSecundario, fontSize: 15, marginTop: 28, textAlign: "center" },
   tarjeta: {
     backgroundColor: colores.blanco,

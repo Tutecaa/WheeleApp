@@ -73,8 +73,7 @@ wheel-e/
 │   ├── conductor/vehiculo.tsx    ← registrar vehículo y documentos
 │   ├── admin/habilitaciones.tsx  ← revisar y aprobar conductores
 │   ├── auth/callback.tsx         ← recibe los enlaces del correo (confirmación y recuperación)
-│   ├── reset-password.tsx        ← definir nueva contraseña tras el enlace de recuperación
-│   └── home.tsx                  ← temporal (Sprint 1); se reemplaza por (tabs)/buscar
+│   └── reset-password.tsx        ← definir nueva contraseña tras el enlace de recuperación
 │
 ├── services/                     ← FUNCIONES QUE HABLAN CON SUPABASE (una por módulo)
 │   ├── auth.service.ts           ← registrar, iniciar sesión, recuperar clave
@@ -91,7 +90,10 @@ wheel-e/
 ├── components/                   ← PIEZAS REUTILIZABLES DE INTERFAZ
 │   ├── Boton.tsx
 │   ├── CampoTexto.tsx
-│   ├── Mapa.tsx                  ← mapa OSM para marcar puntos y dibujar rutas
+│   ├── CampoFechaHora.tsx        ← fecha y hora con el selector nativo (.web.tsx: input del navegador)
+│   ├── Mapa.tsx                  ← mapa OSM (Leaflet en un WebView) para marcar puntos y dibujar rutas
+│   ├── Mapa.web.tsx              ← el mismo mapa en web, dentro de un iframe
+│   ├── mapaLeaflet.ts            ← página de Leaflet y mensajes que comparten Mapa.tsx y Mapa.web.tsx
 │   ├── TarjetaViaje.tsx          ← la tarjeta que aparece en resultados
 │   └── Estrellas.tsx             ← calificación 1 a 5
 │
