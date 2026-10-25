@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 
 import { colores, degradadoPrimario } from "@/constants/colores";
@@ -13,11 +13,17 @@ type Props = {
   pestana?: Pestana;
 };
 
-// Insignia dorada con el carro, como en el storyboard.
-export function Logo({ tamano = 46 }: { tamano?: number }) {
+// La rueda del logo de WHEEL-E sobre una insignia blanca. Es un recorte de
+// assets/images/logo.png sin el texto, que no se leería sobre el verde.
+export function Logo({ tamano = 64 }: { tamano?: number }) {
   return (
-    <View style={[styles.logo, { borderRadius: tamano * 0.26, height: tamano, width: tamano }]}>
-      <Ionicons color={colores.titulo} name="car-sport" size={tamano * 0.56} />
+    <View style={[styles.logo, { borderRadius: tamano / 2, height: tamano, width: tamano }]}>
+      <Image
+        accessibilityLabel="Logo de WHEEL-E"
+        contentFit="contain"
+        source={require("@/assets/images/logo-rueda.png")}
+        style={{ height: tamano - 6, width: tamano - 6 }}
+      />
     </View>
   );
 }
@@ -69,7 +75,16 @@ function Opcion({ activa, destino, texto }: { activa: boolean; destino: "/login"
 const styles = StyleSheet.create({
   encabezado: { paddingBottom: 22, paddingHorizontal: 24 },
   marca: { alignItems: "center", flexDirection: "row", gap: 12, justifyContent: "center" },
-  logo: { alignItems: "center", backgroundColor: colores.acento, justifyContent: "center" },
+  logo: {
+    alignItems: "center",
+    backgroundColor: colores.blanco,
+    elevation: 3,
+    justifyContent: "center",
+    shadowColor: "#000000",
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
   nombre: { color: colores.blanco, fontSize: 30, fontWeight: "700", letterSpacing: 0.5 },
   universidad: {
     color: "rgba(255,255,255,0.85)",
