@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from "react-native";
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
-import { colores } from "@/constants/colores";
+import { colores, degradadoPrimario } from "@/constants/colores";
 
 type Props = {
   titulo: string;
@@ -23,6 +24,11 @@ export function Boton({
   style,
 }: Props) {
   const inactivo = cargando || deshabilitado;
+  const texto = (
+    <Text style={[styles.texto, variante === "secundario" && styles.textoSecundario]}>
+      {cargando && tituloCargando ? tituloCargando : titulo}
+    </Text>
+  );
 
   return (
     <Pressable
@@ -30,29 +36,34 @@ export function Boton({
       accessibilityState={{ disabled: inactivo, busy: cargando }}
       disabled={inactivo}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.base,
-        styles[variante],
-        (pressed || inactivo) && styles.inactivo,
-        style,
-      ]}
+      style={({ pressed }) => [styles.base, (pressed || inactivo) && styles.inactivo, style]}
     >
-      <Text style={[styles.texto, variante === "secundario" && styles.textoSecundario]}>
-        {cargando && tituloCargando ? tituloCargando : titulo}
-      </Text>
+      {variante === "primario" ? (
+        <LinearGradient
+          colors={degradadoPrimario}
+          end={{ x: 1, y: 1 }}
+          start={{ x: 0, y: 0 }}
+          style={[styles.relleno, styles.primario]}
+        >
+          {texto}
+        </LinearGradient>
+      ) : (
+        <View style={[styles.relleno, styles[variante]]}>{texto}</View>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  base: {
+  base: { borderRadius: 14, marginTop: 20, overflow: "hidden" },
+  relleno: {
     alignItems: "center",
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    marginTop: 20,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  primario: { backgroundColor: colores.primario, borderColor: colores.primario },
+  primario: { borderColor: "transparent" },
   secundario: { backgroundColor: colores.blanco, borderColor: colores.primario },
   peligro: { backgroundColor: colores.error, borderColor: colores.error },
   inactivo: { opacity: 0.55 },

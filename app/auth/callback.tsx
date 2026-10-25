@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useSesion } from "@/hooks/useSesion";
 import type { TipoEnlace } from "@/services/auth.service";
 import { Boton } from "@/components/Boton";
+import { EncabezadoAuth } from "@/components/EncabezadoAuth";
 import { colores } from "@/constants/colores";
 
 type Resultado = {
@@ -117,14 +118,14 @@ export default function AuthCallback() {
 
   if (resultado) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <View style={styles.safeArea}>
+        <EncabezadoAuth />
         <View style={styles.content}>
-          <Text style={styles.brand}>WHEEL-E</Text>
           <Text style={styles.title}>{resultado.titulo}</Text>
           <Text style={styles.description}>{resultado.mensaje}</Text>
           <Boton onPress={() => router.replace(resultado.destino)} titulo={resultado.boton} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -138,8 +139,7 @@ export default function AuthCallback() {
 const styles = StyleSheet.create({
   container: { alignItems: "center", backgroundColor: colores.fondo, flex: 1, justifyContent: "center" },
   safeArea: { backgroundColor: colores.fondo, flex: 1 },
-  content: { flex: 1, justifyContent: "center", padding: 28 },
-  brand: { color: colores.primario, fontSize: 14, fontWeight: "800", letterSpacing: 2 },
-  title: { color: colores.titulo, fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 10 },
+  content: { padding: 24 },
+  title: { color: colores.titulo, fontSize: 24, fontWeight: "800", lineHeight: 31 },
   description: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 9 },
 });

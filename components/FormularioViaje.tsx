@@ -7,14 +7,17 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { claveRecorrido, obtenerTrazado } from "@/services/rutas.service";
 import { Boton } from "@/components/Boton";
 import { CampoFechaHora } from "@/components/CampoFechaHora";
 import { CampoTexto } from "@/components/CampoTexto";
+import { ChipEncabezado, Encabezado } from "@/components/Encabezado";
 import { Mapa, type PuntoMapa } from "@/components/Mapa";
 import { colores } from "@/constants/colores";
 import {
@@ -25,7 +28,7 @@ import {
   PARADAS_MAXIMAS,
 } from "@/constants/config";
 import type { Coordenada, TrazadoRuta, Ubicacion, Vehiculo } from "@/types";
-import { formatearDistancia, formatearDuracion } from "@/utils/formato";
+import { formatearDia, formatearDistancia, formatearDuracion } from "@/utils/formato";
 import { validarPuntosViaje } from "@/utils/validaciones";
 
 // Formulario de dos pasos de un viaje: el recorrido en el mapa y los datos de
@@ -63,7 +66,7 @@ export type DatosFormularioViaje = {
 };
 
 type Props = {
-  titulo: string; // "PUBLICAR VIAJE", "EDITAR VIAJE"
+  titulo: string; // "Publicar viaje", "Editar viaje"
   textoEnviar: string;
   textoEnviando: string;
   vehiculos: Vehiculo[]; // solo los aprobados
@@ -72,7 +75,7 @@ type Props = {
   cuposReservados?: number;
   // Lanza un Error con el mensaje para el usuario si no se pudo guardar.
   onEnviar: (datos: DatosFormularioViaje) => Promise<void>;
-  // Si existe, el paso 1 muestra un enlace para salir sin guardar.
+  // Si existe, el paso 1 muestra el botón de volver para salir sin guardar.
   onSalir?: () => void;
 };
 
@@ -289,22 +292,20 @@ export function FormularioViaje({
   if (paso === "ruta") {
     const lista = marcadores(recorrido);
     const instruccion = !recorrido.origen
-      ? "Toca el mapa para marcar el origen (A)."
+      ? "Toca el mapa para marcar el origen."
       : !recorrido.destino
-        ? "Ahora toca el mapa para marcar el destino (B)."
-        : `Toca el mapa para agregar paradas (hasta ${PARADAS_MAXIMAS}). Arrastra un punto para moverlo.`;
+        ? "Ahora toca el mapa para marcar el destino."
+        : "Arrastra un punto en el mapa para moverlo.";
+    const puedeAgregarParada =
+      Boolean(recorrido.origen && recorrido.destino) && recorrido.paradas.length < PARADAS_MAXIMAS;
 
     return (
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
-        <View style={styles.encabezado}>
-          {onSalir ? (
-            <Pressable accessibilityRole="link" onPress={onSalir}>
-              <Text style={styles.enlaceSalir}>← Salir sin guardar</Text>
-            </Pressable>
-          ) : null}
-          <Text style={styles.brand}>{titulo} · PASO 1 DE 2</Text>
-          <Text style={styles.subtitulo}>Marca el recorrido</Text>
-        </View>
+        <Encabezado
+          derecha={<ChipEncabezado texto="Paso 1 de 2" />}
+          onVolver={onSalir}
+          titulo={titulo}
+        />
 
         <Mapa
           editable
@@ -322,37 +323,55 @@ export function FormularioViaje({
           <Text style={styles.instruccion}>{instruccion}</Text>
 
           <View style={styles.atajos}>
-            <Atajo onPress={() => usarCampus("origen")} texto="Salgo de la UIS" />
-            <Atajo onPress={() => usarCampus("destino")} texto="Voy a la UIS" />
-            {recorrido.origen || recorrido.destino ? <Atajo onPress={invertir} texto="Invertir" /> : null}
-            {lista.length > 0 ? <Atajo onPress={limpiar} texto="Borrar todo" /> : null}
+            <Atajo icono="school-outline" onPress={() => usarCampus("origen")} texto="Salgo de la UIS" />
+            <Atajo icono="school-outline" onPress={() => usarCampus("destino")} texto="Voy a la UIS" />
+            {recorrido.origen || recorrido.destino ? (
+              <Atajo icono="swap-vertical" onPress={invertir} texto="Invertir" />
+            ) : null}
+            {lista.length > 0 ? <Atajo icono="trash-outline" onPress={limpiar} texto="Borrar todo" /> : null}
             {inicial && recorridoCambio ? (
-              <Atajo onPress={restaurarRecorrido} texto="Restaurar recorrido guardado" />
+              <Atajo icono="arrow-undo" onPress={restaurarRecorrido} texto="Restaurar recorrido guardado" />
             ) : null}
           </View>
 
-          {lista.map(({ punto, posicion }) => (
-            <View key={`${posicion.tipo}-${punto.etiqueta}`} style={styles.punto}>
-              <Text style={[styles.puntoEtiqueta, ESTILO_MARCA[punto.tipo]]}>{punto.etiqueta}</Text>
-              <Text numberOfLines={1} style={styles.puntoTexto}>
-                {posicion.tipo === "origen"
-                  ? `Origen${nombreOrigen ? ` · ${nombreOrigen}` : ""}`
-                  : posicion.tipo === "destino"
-                    ? `Destino${nombreDestino ? ` · ${nombreDestino}` : ""}`
-                    : `Parada ${posicion.indice + 1}`}
-              </Text>
-              <Pressable
-                accessibilityLabel="Quitar punto"
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={() => moverPunto(posicion, null)}
-              >
-                <Text style={styles.quitar}>Quitar</Text>
-              </Pressable>
-            </View>
+          <TarjetaPunto
+            color={COLOR_PUNTO.origen}
+            etiqueta="Origen"
+            onQuitar={recorrido.origen ? () => moverPunto({ tipo: "origen" }, null) : undefined}
+            valor={
+              recorrido.origen ? nombreOrigen || "Punto marcado en el mapa" : "Toca el mapa para marcarlo"
+            }
+            vacio={!recorrido.origen}
+          />
+          {recorrido.paradas.map((_parada, indice) => (
+            <TarjetaPunto
+              color={COLOR_PUNTO.parada}
+              etiqueta={`Parada ${indice + 1}`}
+              key={`parada-${indice}`}
+              onQuitar={() => moverPunto({ tipo: "parada", indice }, null)}
+              valor="Punto marcado en el mapa"
+            />
           ))}
+          {puedeAgregarParada ? (
+            <TarjetaPunto
+              color={COLOR_PUNTO.parada}
+              etiqueta="Parada intermedia"
+              onAgregar={() => setAvisoMapa("Toca el mapa donde quieras agregar la parada.")}
+              valor="Añadir parada…"
+              vacio
+            />
+          ) : null}
+          <TarjetaPunto
+            color={COLOR_PUNTO.destino}
+            etiqueta="Destino"
+            onQuitar={recorrido.destino ? () => moverPunto({ tipo: "destino" }, null) : undefined}
+            valor={
+              recorrido.destino ? nombreDestino || "Punto marcado en el mapa" : "Toca el mapa para marcarlo"
+            }
+            vacio={!recorrido.destino}
+          />
 
-          {avisoMapa ? <Text style={styles.error}>{avisoMapa}</Text> : null}
+          {avisoMapa ? <Text style={styles.aviso}>{avisoMapa}</Text> : null}
           {errorPuntos ? <Text style={styles.error}>{errorPuntos}</Text> : null}
           {calculando ? (
             <View style={styles.estadoRuta}>
@@ -367,10 +386,13 @@ export function FormularioViaje({
             </View>
           ) : null}
           {trazado ? (
-            <Text style={styles.resumenRuta}>
-              Ruta de {formatearDistancia(trazado.distanciaMetros)} · unos{" "}
-              {formatearDuracion(trazado.duracionSegundos)} en carro
-            </Text>
+            <View style={styles.resumenRuta}>
+              <Ionicons color={colores.primario} name="navigate" size={16} />
+              <Text style={styles.resumenRutaTexto}>
+                Ruta de {formatearDistancia(trazado.distanciaMetros)} · unos{" "}
+                {formatearDuracion(trazado.duracionSegundos)} en carro
+              </Text>
+            </View>
           ) : null}
 
           <Boton deshabilitado={!trazado} onPress={() => setPaso("datos")} titulo="Continuar" />
@@ -379,29 +401,37 @@ export function FormularioViaje({
     );
   }
 
+  const maximoCupos = vehiculo?.numeroPuestos ?? 0;
+
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
+      <Encabezado
+        derecha={
+          <ChipEncabezado icono="calendar-outline" texto={salida ? formatearDia(salida) : "Paso 2 de 2"} />
+        }
+        onVolver={() => setPaso("ruta")}
+        titulo={titulo}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.flex}
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          <Pressable accessibilityRole="link" onPress={() => setPaso("ruta")}>
-            <Text style={styles.backLink}>← Volver al mapa</Text>
-          </Pressable>
-          <Text style={styles.brand}>{titulo} · PASO 2 DE 2</Text>
-          <Text style={styles.title}>Datos de la salida</Text>
-
           {trazado ? (
-            <View style={styles.tarjeta}>
-              <Text style={styles.tarjetaTexto}>
-                {recorrido.paradas.length === 0
-                  ? "Sin paradas intermedias"
-                  : `${recorrido.paradas.length} parada${recorrido.paradas.length === 1 ? "" : "s"} intermedia${recorrido.paradas.length === 1 ? "" : "s"}`}
-              </Text>
-              <Text style={styles.tarjetaTexto}>
-                {formatearDistancia(trazado.distanciaMetros)} · unos {formatearDuracion(trazado.duracionSegundos)}
-              </Text>
+            <View style={styles.resumenTarjeta}>
+              <Ionicons color={colores.primario} name="navigate" size={18} />
+              <View style={styles.flex}>
+                <Text numberOfLines={2} style={styles.resumenTitulo}>
+                  {nombreOrigen || "Origen"} → {nombreDestino || "Destino"}
+                </Text>
+                <Text style={styles.resumenDetalle}>
+                  {formatearDistancia(trazado.distanciaMetros)} · unos{" "}
+                  {formatearDuracion(trazado.duracionSegundos)}
+                  {recorrido.paradas.length > 0
+                    ? ` · ${recorrido.paradas.length} parada${recorrido.paradas.length === 1 ? "" : "s"}`
+                    : ""}
+                </Text>
+              </View>
             </View>
           ) : null}
 
@@ -420,12 +450,7 @@ export function FormularioViaje({
             value={nombreDestino}
           />
 
-          <CampoFechaHora
-            etiqueta="Fecha y hora de salida"
-            minimo={new Date()}
-            onCambiar={setSalida}
-            valor={salida}
-          />
+          <CampoFechaHora minimo={new Date()} onCambiar={setSalida} valor={salida} />
 
           <Text style={styles.etiqueta}>Vehículo</Text>
           {vehiculos.map((opcion) => {
@@ -438,40 +463,85 @@ export function FormularioViaje({
                 onPress={() => setVehiculoId(opcion.id)}
                 style={[styles.vehiculo, elegido && styles.vehiculoElegido]}
               >
-                <Text style={styles.vehiculoPlaca}>{opcion.placa}</Text>
-                <Text style={styles.vehiculoDetalle}>
-                  {opcion.marca} {opcion.linea} · {opcion.color} · {opcion.numeroPuestos} puestos
-                </Text>
+                <Ionicons
+                  color={elegido ? colores.primario : colores.textoSecundario}
+                  name="car-sport-outline"
+                  size={22}
+                />
+                <View style={styles.flex}>
+                  <Text style={styles.vehiculoPlaca}>{opcion.placa}</Text>
+                  <Text style={styles.vehiculoDetalle}>
+                    {opcion.marca} {opcion.linea} · {opcion.color} · {opcion.numeroPuestos} puestos
+                  </Text>
+                </View>
               </Pressable>
             );
           })}
 
-          <CampoTexto
-            etiqueta="Cupos para pasajeros"
-            keyboardType="number-pad"
-            maxLength={2}
-            onChangeText={setCupos}
-            placeholder={vehiculo ? `De 1 a ${vehiculo.numeroPuestos}` : "Elige primero el vehículo"}
-            value={cupos}
-          />
-          {cuposReservados > 0 ? (
+          <View style={styles.seccion}>
+            <View style={styles.seccionEncabezado}>
+              <Text style={styles.seccionEtiqueta}>Asientos disponibles</Text>
+              <Text style={styles.seccionValor}>{cupos || "–"}</Text>
+            </View>
+            {vehiculo ? (
+              <View style={styles.asientos}>
+                {Array.from({ length: maximoCupos }, (_, i) => String(i + 1)).map((numero) => {
+                  const elegido = cupos === numero;
+                  const bloqueado = Number(numero) < cuposReservados;
+                  return (
+                    <Pressable
+                      accessibilityLabel={`${numero} asientos`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: elegido, disabled: bloqueado }}
+                      disabled={bloqueado}
+                      key={numero}
+                      onPress={() => setCupos(numero)}
+                      style={[
+                        styles.asiento,
+                        elegido && styles.asientoElegido,
+                        bloqueado && styles.asientoBloqueado,
+                      ]}
+                    >
+                      <Text style={[styles.asientoTexto, elegido && styles.asientoTextoElegido]}>
+                        {numero}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : (
+              <Text style={styles.ayuda}>Elige primero el vehículo.</Text>
+            )}
+            {cuposReservados > 0 ? (
+              <Text style={styles.ayuda}>
+                Hay {cuposReservados} reserva{cuposReservados === 1 ? "" : "s"} confirmada
+                {cuposReservados === 1 ? "" : "s"}: no puedes dejar menos cupos que eso.
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={styles.seccion}>
+            <View style={styles.seccionEncabezado}>
+              <Text style={styles.seccionEtiqueta}>Contribución sugerida</Text>
+              <View style={styles.aporteFila}>
+                <Text style={styles.aporteSimbolo}>$</Text>
+                <TextInput
+                  accessibilityLabel="Contribución sugerida por pasajero"
+                  keyboardType="number-pad"
+                  maxLength={String(APORTE_SUGERIDO_MAXIMO).length}
+                  onChangeText={setAporte}
+                  placeholder="0"
+                  placeholderTextColor={colores.placeholder}
+                  style={styles.aporteInput}
+                  value={aporte}
+                />
+              </View>
+            </View>
             <Text style={styles.ayuda}>
-              Hay {cuposReservados} reserva{cuposReservados === 1 ? "" : "s"} confirmada
-              {cuposReservados === 1 ? "" : "s"}: no puedes dejar menos cupos que eso.
+              Por pasajero, en pesos. Es solo una referencia: WHEEL-E no procesa pagos y el
+              aporte se acuerda directamente entre ustedes.
             </Text>
-          ) : null}
-          <CampoTexto
-            etiqueta="Aporte sugerido por pasajero (opcional)"
-            keyboardType="number-pad"
-            maxLength={String(APORTE_SUGERIDO_MAXIMO).length}
-            onChangeText={setAporte}
-            placeholder="Ej.: 4000"
-            value={aporte}
-          />
-          <Text style={styles.ayuda}>
-            Es solo una referencia en pesos. WHEEL-E no procesa pagos: el aporte se acuerda
-            directamente entre ustedes.
-          </Text>
+          </View>
 
           {errorDatos ? <Text style={styles.error}>{errorDatos}</Text> : null}
 
@@ -487,9 +557,69 @@ export function FormularioViaje({
   );
 }
 
-function Atajo({ texto, onPress }: { texto: string; onPress: () => void }) {
+// Los mismos colores de los marcadores del mapa (mapaLeaflet.ts).
+const COLOR_PUNTO = {
+  origen: colores.primario,
+  parada: colores.acento,
+  destino: colores.primarioOscuro,
+};
+
+// Fila de un punto del recorrido: punto de color, etiqueta y lugar.
+function TarjetaPunto({
+  color,
+  etiqueta,
+  valor,
+  vacio = false,
+  onQuitar,
+  onAgregar,
+}: {
+  color: string;
+  etiqueta: string;
+  valor: string;
+  vacio?: boolean;
+  onQuitar?: () => void;
+  onAgregar?: () => void;
+}) {
+  return (
+    <Pressable disabled={!onAgregar} onPress={onAgregar} style={styles.puntoTarjeta}>
+      <View style={[styles.puntoColor, { backgroundColor: color }]} />
+      <View style={styles.flex}>
+        <Text style={styles.puntoEtiqueta}>{etiqueta}</Text>
+        <Text numberOfLines={1} style={[styles.puntoValor, vacio && styles.puntoValorVacio]}>
+          {valor}
+        </Text>
+      </View>
+      {onQuitar ? (
+        <Pressable
+          accessibilityLabel={`Quitar ${etiqueta.toLowerCase()}`}
+          accessibilityRole="button"
+          hitSlop={10}
+          onPress={onQuitar}
+        >
+          <Ionicons color={colores.textoSecundario} name="close-circle" size={22} />
+        </Pressable>
+      ) : null}
+      {onAgregar ? (
+        <View style={styles.agregar}>
+          <Ionicons color={colores.primario} name="add" size={18} />
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function Atajo({
+  texto,
+  icono,
+  onPress,
+}: {
+  texto: string;
+  icono: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+}) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.atajo}>
+      <Ionicons color={colores.primario} name={icono} size={14} />
       <Text style={styles.atajoTexto}>{texto}</Text>
     </Pressable>
   );
@@ -498,79 +628,135 @@ function Atajo({ texto, onPress }: { texto: string; onPress: () => void }) {
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colores.fondo, flex: 1 },
   flex: { flex: 1 },
-  container: { padding: 28, paddingBottom: 48 },
-  encabezado: { paddingBottom: 10, paddingHorizontal: 20, paddingTop: 12 },
-  enlaceSalir: { color: colores.primario, fontSize: 14, fontWeight: "700", marginBottom: 10 },
-  backLink: { color: colores.primario, fontSize: 14, fontWeight: "700", marginBottom: 20 },
-  brand: { color: colores.primario, fontSize: 12, fontWeight: "800", letterSpacing: 1.5 },
-  title: { color: colores.titulo, fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 8 },
-  subtitulo: { color: colores.titulo, fontSize: 20, fontWeight: "800", marginTop: 4 },
-  mapa: { flex: 1 },
+  container: { padding: 18, paddingBottom: 40 },
+  mapa: { backgroundColor: colores.menta, flex: 1 },
   panel: {
-    backgroundColor: colores.blanco,
+    backgroundColor: colores.fondo,
     borderTopColor: colores.borde,
     borderTopWidth: 1,
     flexGrow: 0,
-    maxHeight: "48%",
+    maxHeight: "52%",
   },
   panelContenido: { padding: 16, paddingBottom: 20 },
-  instruccion: { color: colores.texto, fontSize: 14, lineHeight: 20 },
-  atajos: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+  instruccion: { color: colores.textoSecundario, fontSize: 13, lineHeight: 19 },
+  atajos: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 4, marginTop: 10 },
   atajo: {
-    borderColor: colores.primario,
+    alignItems: "center",
+    backgroundColor: colores.primarioSuave,
     borderRadius: 18,
-    borderWidth: 1,
+    flexDirection: "row",
+    gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
   atajoTexto: { color: colores.primario, fontSize: 13, fontWeight: "700" },
-  punto: { alignItems: "center", flexDirection: "row", marginTop: 10 },
-  puntoEtiqueta: {
-    borderRadius: 12,
-    color: colores.blanco,
-    fontSize: 12,
-    fontWeight: "800",
-    height: 24,
-    lineHeight: 24,
-    overflow: "hidden",
-    textAlign: "center",
-    width: 24,
-  },
-  marcaOrigen: { backgroundColor: colores.primario },
-  marcaParada: { backgroundColor: "#4C5FA8" },
-  marcaDestino: { backgroundColor: colores.titulo },
-  puntoTexto: { color: colores.texto, flex: 1, fontSize: 14, marginHorizontal: 10 },
-  quitar: { color: colores.error, fontSize: 13, fontWeight: "700" },
-  estadoRuta: { alignItems: "center", flexDirection: "row", gap: 8, marginTop: 12 },
-  estadoRutaTexto: { color: colores.textoSecundario, fontSize: 13 },
-  resumenRuta: { color: colores.primario, fontSize: 14, fontWeight: "700", marginTop: 12 },
-  error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },
-  tarjeta: {
+  puntoTarjeta: {
+    alignItems: "center",
     backgroundColor: colores.blanco,
     borderColor: colores.borde,
     borderRadius: 14,
     borderWidth: 1,
-    marginTop: 16,
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  puntoColor: { borderRadius: 5, height: 10, width: 10 },
+  puntoEtiqueta: {
+    color: colores.textoSecundario,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  puntoValor: { color: colores.titulo, fontSize: 15, fontWeight: "700", marginTop: 2 },
+  puntoValorVacio: { color: colores.placeholder, fontWeight: "600" },
+  agregar: {
+    alignItems: "center",
+    backgroundColor: colores.primarioSuave,
+    borderRadius: 14,
+    height: 28,
+    justifyContent: "center",
+    width: 28,
+  },
+  estadoRuta: { alignItems: "center", flexDirection: "row", gap: 8, marginTop: 12 },
+  estadoRutaTexto: { color: colores.textoSecundario, fontSize: 13 },
+  resumenRuta: { alignItems: "center", flexDirection: "row", gap: 6, marginTop: 12 },
+  resumenRutaTexto: { color: colores.primario, flex: 1, fontSize: 14, fontWeight: "700" },
+  aviso: { color: colores.primario, fontSize: 13, fontWeight: "600", lineHeight: 18, marginTop: 10 },
+  error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },
+  resumenTarjeta: {
+    alignItems: "center",
+    backgroundColor: colores.primarioSuave,
+    borderRadius: 14,
+    flexDirection: "row",
+    gap: 10,
     padding: 14,
   },
-  tarjetaTexto: { color: colores.texto, fontSize: 14, lineHeight: 21 },
-  etiqueta: { color: colores.texto, fontSize: 13, fontWeight: "700", marginBottom: 2, marginTop: 13 },
+  resumenTitulo: { color: colores.titulo, fontSize: 15, fontWeight: "800" },
+  resumenDetalle: { color: colores.textoSecundario, fontSize: 13, marginTop: 2 },
+  etiqueta: {
+    color: colores.textoSecundario,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    marginTop: 18,
+    textTransform: "uppercase",
+  },
   vehiculo: {
+    alignItems: "center",
     backgroundColor: colores.blanco,
     borderColor: colores.borde,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
     marginTop: 8,
-    padding: 12,
+    padding: 14,
   },
   vehiculoElegido: { borderColor: colores.primario, borderWidth: 2 },
   vehiculoPlaca: { color: colores.titulo, fontSize: 15, fontWeight: "800", letterSpacing: 1 },
-  vehiculoDetalle: { color: colores.textoSecundario, fontSize: 13, marginTop: 3 },
-  ayuda: { color: colores.textoSecundario, fontSize: 12, lineHeight: 17, marginTop: 6 },
+  vehiculoDetalle: { color: colores.textoSecundario, fontSize: 13, marginTop: 2 },
+  seccion: {
+    backgroundColor: colores.blanco,
+    borderColor: colores.borde,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 14,
+    padding: 14,
+  },
+  seccionEncabezado: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  seccionEtiqueta: {
+    color: colores.textoSecundario,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  seccionValor: { color: colores.primario, fontSize: 20, fontWeight: "800" },
+  asientos: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  asiento: {
+    alignItems: "center",
+    backgroundColor: colores.primarioSuave,
+    borderRadius: 10,
+    flexBasis: "22%",
+    flexGrow: 1,
+    paddingVertical: 11,
+  },
+  asientoElegido: { backgroundColor: colores.primario },
+  asientoBloqueado: { opacity: 0.35 },
+  asientoTexto: { color: colores.texto, fontSize: 15, fontWeight: "700" },
+  asientoTextoElegido: { color: colores.blanco },
+  aporteFila: { alignItems: "center", flexDirection: "row" },
+  aporteSimbolo: { color: colores.acento, fontSize: 20, fontWeight: "800" },
+  aporteInput: {
+    color: colores.acento,
+    fontSize: 20,
+    fontWeight: "800",
+    minWidth: 70,
+    paddingVertical: 0,
+    textAlign: "right",
+  },
+  ayuda: { color: colores.textoSecundario, fontSize: 12, lineHeight: 17, marginTop: 8 },
 });
-
-const ESTILO_MARCA = {
-  origen: styles.marcaOrigen,
-  parada: styles.marcaParada,
-  destino: styles.marcaDestino,
-};

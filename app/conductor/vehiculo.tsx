@@ -26,6 +26,7 @@ import {
 } from "@/services/vehiculos.service";
 import { Boton } from "@/components/Boton";
 import { CampoTexto } from "@/components/CampoTexto";
+import { Encabezado } from "@/components/Encabezado";
 import { colores } from "@/constants/colores";
 import { TIPOS_DOCUMENTO_PERMITIDOS } from "@/constants/config";
 import type { EstadoHabilitacionVehiculo, Vehiculo } from "@/types";
@@ -204,7 +205,8 @@ export default function MiVehiculo() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+      <Encabezado onVolver={() => router.back()} titulo="Mi vehículo" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.keyboard}
@@ -212,13 +214,10 @@ export default function MiVehiculo() {
         <ScrollView
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
-          refreshControl={<RefreshControl onRefresh={refrescar} refreshing={refrescando} />}
+          refreshControl={
+            <RefreshControl colors={[colores.primario]} onRefresh={refrescar} refreshing={refrescando} />
+          }
         >
-          <Pressable accessibilityRole="link" onPress={() => router.back()}>
-            <Text style={styles.backLink}>← Volver</Text>
-          </Pressable>
-          <Text style={styles.brand}>WHEEL-E</Text>
-          <Text style={styles.title}>Mi vehículo</Text>
           <Text style={styles.description}>
             Registra tu vehículo y carga tus documentos para que un administrador te
             habilite como conductor.
@@ -378,11 +377,8 @@ const styles = StyleSheet.create({
   safeArea: { backgroundColor: colores.fondo, flex: 1 },
   centrado: { alignItems: "center", justifyContent: "center" },
   keyboard: { flex: 1 },
-  container: { padding: 28, paddingBottom: 48 },
-  backLink: { color: colores.primario, fontSize: 14, fontWeight: "700", marginBottom: 28 },
-  brand: { color: colores.primario, fontSize: 14, fontWeight: "800", letterSpacing: 2 },
-  title: { color: colores.titulo, fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 10 },
-  description: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 9 },
+  container: { padding: 18, paddingBottom: 48 },
+  description: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22 },
   error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },
   mensaje: { color: colores.primario, fontSize: 13, fontWeight: "700", lineHeight: 18, marginTop: 12 },
   nota: { color: colores.textoSecundario, fontSize: 13, lineHeight: 19, marginTop: 16 },

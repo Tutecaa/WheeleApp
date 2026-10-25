@@ -7,12 +7,21 @@ export function formatearFecha(iso: string): string {
   });
 }
 
+// Día corto, por ejemplo "sáb, 25 oct".
+export function formatearDia(fecha: Date | string): string {
+  const valor = typeof fecha === "string" ? new Date(fecha) : fecha;
+  return valor.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" });
+}
+
+// Hora, por ejemplo "6:30 a. m.".
+export function formatearHora(fecha: Date | string): string {
+  const valor = typeof fecha === "string" ? new Date(fecha) : fecha;
+  return valor.toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
+}
+
 // Fecha y hora, por ejemplo "sáb, 25 oct · 6:30 a. m.".
 export function formatearFechaHora(fecha: Date | string): string {
-  const valor = typeof fecha === "string" ? new Date(fecha) : fecha;
-  const dia = valor.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" });
-  const hora = valor.toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
-  return `${dia} · ${hora}`;
+  return `${formatearDia(fecha)} · ${formatearHora(fecha)}`;
 }
 
 // "850 m" o "12,4 km".

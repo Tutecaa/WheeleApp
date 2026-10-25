@@ -23,17 +23,25 @@ export function CampoTexto({ etiqueta, error, style, ...props }: Props) {
 }
 
 const styles = StyleSheet.create({
-  contenedor: { marginTop: 13 },
-  etiqueta: { color: colores.texto, fontSize: 13, fontWeight: "700", marginBottom: 7 },
+  contenedor: { marginTop: 14 },
+  // Etiquetas en mayúscula pequeña, como en el storyboard.
+  etiqueta: {
+    color: colores.textoSecundario,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    marginBottom: 7,
+    textTransform: "uppercase",
+  },
   input: {
     backgroundColor: colores.blanco,
     borderColor: colores.borde,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     color: colores.texto,
     fontSize: 15,
     height: 52,
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
   },
   inputConError: { borderColor: colores.error },
   error: { color: colores.error, fontSize: 12, marginTop: 5 },

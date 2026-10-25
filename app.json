@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "wheel-e",
+    "name": "WHEEL-E",
     "slug": "wheel-e",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,7 +12,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#197B62",
+        "backgroundColor": "#1B8A4C",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -28,7 +28,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#197B62",
+          "backgroundColor": "#1B8A4C",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }

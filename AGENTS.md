@@ -91,6 +91,8 @@ wheel-e/
 ├── components/                   ← PIEZAS REUTILIZABLES DE INTERFAZ
 │   ├── Boton.tsx
 │   ├── CampoTexto.tsx
+│   ├── Encabezado.tsx            ← barra superior de las pantallas internas (volver, título, chip)
+│   ├── EncabezadoAuth.tsx        ← encabezado verde con el logo de las pantallas de acceso
 │   ├── FormularioViaje.tsx       ← pasos de mapa y datos; lo usan publicar y editar viaje
 │   ├── CampoFechaHora.tsx        ← fecha y hora con el selector nativo (.web.tsx: input del navegador)
 │   ├── Mapa.tsx                  ← mapa OSM (Leaflet en un WebView) para marcar puntos y dibujar rutas

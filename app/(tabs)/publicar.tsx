@@ -2,11 +2,13 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { obtenerMisVehiculos } from "@/services/vehiculos.service";
 import { publicarViaje } from "@/services/viajes.service";
 import { useSesion } from "@/hooks/useSesion";
 import { Boton } from "@/components/Boton";
+import { Encabezado } from "@/components/Encabezado";
 import { FormularioViaje, type DatosFormularioViaje } from "@/components/FormularioViaje";
 import { colores } from "@/constants/colores";
 import type { Vehiculo } from "@/types";
@@ -65,9 +67,11 @@ export default function Publicar() {
   if (esAdmin || aprobados.length === 0) {
     return (
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
+        <Encabezado titulo="Publicar viaje" />
         <View style={styles.bloqueo}>
-          <Text style={styles.brand}>WHEEL-E</Text>
-          <Text style={styles.title}>Publicar viaje</Text>
+          <View style={styles.icono}>
+            <Ionicons color={colores.primario} name="car-sport-outline" size={34} />
+          </View>
           {errorCarga ? (
             <Text style={styles.error}>{errorCarga}</Text>
           ) : esAdmin ? (
@@ -94,7 +98,7 @@ export default function Publicar() {
       onEnviar={publicar}
       textoEnviando="Publicando..."
       textoEnviar="Publicar viaje"
-      titulo="PUBLICAR VIAJE"
+      titulo="Publicar viaje"
       vehiculos={aprobados}
     />
   );
@@ -104,8 +108,21 @@ const styles = StyleSheet.create({
   safeArea: { backgroundColor: colores.fondo, flex: 1 },
   centrado: { alignItems: "center", justifyContent: "center" },
   bloqueo: { flex: 1, justifyContent: "center", padding: 28 },
-  brand: { color: colores.primario, fontSize: 12, fontWeight: "800", letterSpacing: 1.5 },
-  title: { color: colores.titulo, fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 8 },
-  description: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 10 },
+  icono: {
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: colores.primarioSuave,
+    borderRadius: 24,
+    height: 72,
+    justifyContent: "center",
+    width: 72,
+  },
+  description: {
+    color: colores.textoSecundario,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 16,
+    textAlign: "center",
+  },
   error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },
 });

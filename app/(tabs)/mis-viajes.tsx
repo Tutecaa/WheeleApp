@@ -10,10 +10,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { obtenerMisViajes } from "@/services/viajes.service";
 import { useSesion } from "@/hooks/useSesion";
 import { Boton } from "@/components/Boton";
+import { Encabezado } from "@/components/Encabezado";
 import { TarjetaViaje, salidaVencida } from "@/components/TarjetaViaje";
 import { colores } from "@/constants/colores";
 import type { ResumenViaje, RolEnViaje } from "@/types";
@@ -97,13 +99,13 @@ export default function MisViajes() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
+      <Encabezado titulo="Mis viajes" />
       <ScrollView
         contentContainerStyle={styles.container}
-        refreshControl={<RefreshControl onRefresh={refrescar} refreshing={refrescando} />}
+        refreshControl={
+          <RefreshControl colors={[colores.primario]} onRefresh={refrescar} refreshing={refrescando} />
+        }
       >
-        <Text style={styles.brand}>WHEEL-E</Text>
-        <Text style={styles.title}>Mis viajes</Text>
-
         <Selector
           onCambiar={setPeriodo}
           opciones={[
@@ -126,7 +128,10 @@ export default function MisViajes() {
         ) : error ? (
           <Text style={styles.error}>{error}</Text>
         ) : filtrados.length === 0 ? (
-          <View>
+          <View style={styles.vacioCaja}>
+            <View style={styles.vacioIcono}>
+              <Ionicons color={colores.primario} name="map-outline" size={30} />
+            </View>
             <Text style={styles.vacio}>{VACIO[periodo][rol]}</Text>
             {rol === "conductor" && periodo === "proximos" && !esAdmin ? (
               <Boton onPress={() => router.push("/publicar")} titulo="Publicar un viaje" variante="secundario" />
@@ -177,23 +182,28 @@ function Selector<T extends string>({
 
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colores.fondo, flex: 1 },
-  container: { padding: 24, paddingBottom: 40 },
-  brand: { color: colores.primario, fontSize: 14, fontWeight: "800", letterSpacing: 2 },
-  title: { color: colores.titulo, fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 8 },
+  container: { padding: 18, paddingBottom: 40 },
   selector: {
-    backgroundColor: colores.blanco,
-    borderColor: colores.borde,
-    borderRadius: 12,
-    borderWidth: 1,
+    backgroundColor: colores.primarioSuave,
+    borderRadius: 14,
     flexDirection: "row",
-    marginTop: 14,
+    marginTop: 10,
     padding: 4,
   },
-  opcion: { alignItems: "center", borderRadius: 9, flex: 1, paddingVertical: 9 },
-  opcionElegida: { backgroundColor: colores.primario },
+  opcion: { alignItems: "center", borderRadius: 11, flex: 1, paddingVertical: 10 },
+  opcionElegida: { backgroundColor: colores.blanco },
   opcionTexto: { color: colores.textoSecundario, fontSize: 14, fontWeight: "700" },
-  opcionTextoElegida: { color: colores.blanco },
+  opcionTextoElegida: { color: colores.primario },
   cargando: { marginTop: 32 },
   error: { color: colores.error, fontSize: 14, lineHeight: 20, marginTop: 20 },
-  vacio: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 24 },
+  vacioCaja: { alignItems: "center", marginTop: 36 },
+  vacioIcono: {
+    alignItems: "center",
+    backgroundColor: colores.primarioSuave,
+    borderRadius: 22,
+    height: 64,
+    justifyContent: "center",
+    width: 64,
+  },
+  vacio: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 14, textAlign: "center" },
 });

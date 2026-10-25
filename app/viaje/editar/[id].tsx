@@ -112,7 +112,7 @@ export default function EditarViaje() {
       onSalir={salir}
       textoEnviando="Guardando..."
       textoEnviar="Guardar cambios"
-      titulo="EDITAR VIAJE"
+      titulo="Editar viaje"
       vehiculos={vehiculos}
     />
   );

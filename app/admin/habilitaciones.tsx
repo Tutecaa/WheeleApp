@@ -25,6 +25,7 @@ import {
 import { useSesion } from "@/hooks/useSesion";
 import { Boton } from "@/components/Boton";
 import { CampoTexto } from "@/components/CampoTexto";
+import { Encabezado } from "@/components/Encabezado";
 import { colores } from "@/constants/colores";
 import type { DocumentosVehiculo } from "@/types";
 import { confirmar } from "@/utils/confirmar";
@@ -150,7 +151,8 @@ export default function Habilitaciones() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+      <Encabezado onVolver={() => router.back()} titulo="Habilitaciones" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.keyboard}
@@ -159,13 +161,12 @@ export default function Habilitaciones() {
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
           refreshControl={
-            noEsAdmin ? undefined : <RefreshControl onRefresh={refrescar} refreshing={refrescando} />
+            noEsAdmin ? undefined : (
+              <RefreshControl colors={[colores.primario]} onRefresh={refrescar} refreshing={refrescando} />
+            )
           }
         >
-          <Pressable accessibilityRole="link" onPress={() => router.back()}>
-            <Text style={styles.backLink}>← Volver</Text>
-          </Pressable>
-          <Text style={styles.brand}>WHEEL-E · ADMINISTRACIÓN</Text>
+          <Text style={styles.brand}>ADMINISTRACIÓN</Text>
           <Text style={styles.title}>Habilitación de conductores</Text>
 
           {noEsAdmin ? (
@@ -296,10 +297,9 @@ const styles = StyleSheet.create({
   safeArea: { backgroundColor: colores.fondo, flex: 1 },
   centrado: { alignItems: "center", justifyContent: "center" },
   keyboard: { flex: 1 },
-  container: { padding: 28, paddingBottom: 48 },
-  backLink: { color: colores.primario, fontSize: 14, fontWeight: "700", marginBottom: 28 },
-  brand: { color: colores.primario, fontSize: 14, fontWeight: "800", letterSpacing: 2 },
-  title: { color: colores.titulo, fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 10 },
+  container: { padding: 18, paddingBottom: 48 },
+  brand: { color: colores.acento, fontSize: 12, fontWeight: "800", letterSpacing: 1.5 },
+  title: { color: colores.titulo, fontSize: 22, fontWeight: "800", lineHeight: 29, marginTop: 4 },
   description: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 9 },
   mensaje: { color: colores.primario, fontSize: 13, fontWeight: "700", lineHeight: 18, marginTop: 12 },
   error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },

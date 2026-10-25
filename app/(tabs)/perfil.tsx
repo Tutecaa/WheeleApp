@@ -2,13 +2,25 @@ import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { signOut } from "@/services/auth.service";
 import { useSesion } from "@/hooks/useSesion";
 import { Boton } from "@/components/Boton";
+import { Encabezado } from "@/components/Encabezado";
 import { colores } from "@/constants/colores";
 
-// Mi propio perfil. Reemplaza a la pantalla temporal home.tsx del Sprint 1.
+// "Daniela Morales Torres" → "DM".
+function iniciales(nombre: string): string {
+  return nombre
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((parte) => parte[0]?.toUpperCase())
+    .join("");
+}
+
+// Mi propio perfil.
 export default function Perfil() {
   const { perfil } = useSesion();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -28,14 +40,25 @@ export default function Perfil() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
+      <Encabezado titulo="Mi perfil" />
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.brand}>WHEEL-E</Text>
-        <Text style={styles.title}>{perfil ? perfil.nombreCompleto : "Mi perfil"}</Text>
         {perfil ? (
           <View style={styles.tarjeta}>
-            <Text style={styles.dato}>{perfil.programaAcademico}</Text>
-            <Text style={styles.datoSecundario}>{perfil.correoInstitucional}</Text>
-            <Text style={styles.datoSecundario}>Código {perfil.codigoInstitucional}</Text>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarTexto}>{iniciales(perfil.nombreCompleto)}</Text>
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.nombre}>{perfil.nombreCompleto}</Text>
+              <Text style={styles.programa}>{perfil.programaAcademico}</Text>
+              {esAdmin ? <Text style={styles.rol}>Administrador</Text> : null}
+            </View>
+          </View>
+        ) : null}
+
+        {perfil ? (
+          <View style={styles.datos}>
+            <Dato icono="mail-outline" texto={perfil.correoInstitucional} />
+            <Dato icono="card-outline" texto={`Código ${perfil.codigoInstitucional}`} />
           </View>
         ) : null}
 
@@ -64,19 +87,50 @@ export default function Perfil() {
   );
 }
 
+function Dato({ icono, texto }: { icono: keyof typeof Ionicons.glyphMap; texto: string }) {
+  return (
+    <View style={styles.dato}>
+      <Ionicons color={colores.primario} name={icono} size={18} />
+      <Text style={styles.datoTexto}>{texto}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colores.fondo, flex: 1 },
-  container: { padding: 28 },
-  brand: { color: colores.primario, fontSize: 14, fontWeight: "800", letterSpacing: 2 },
-  title: { color: colores.titulo, fontSize: 28, fontWeight: "800", lineHeight: 35, marginTop: 8 },
+  flex: { flex: 1 },
+  container: { padding: 18, paddingBottom: 40 },
   tarjeta: {
+    alignItems: "center",
     backgroundColor: colores.blanco,
     borderColor: colores.borde,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    marginTop: 18,
+    flexDirection: "row",
+    gap: 14,
     padding: 16,
   },
-  dato: { color: colores.texto, fontSize: 15, fontWeight: "700" },
-  datoSecundario: { color: colores.textoSecundario, fontSize: 14, marginTop: 4 },
+  avatar: {
+    alignItems: "center",
+    backgroundColor: colores.primario,
+    borderRadius: 16,
+    height: 60,
+    justifyContent: "center",
+    width: 60,
+  },
+  avatarTexto: { color: colores.blanco, fontSize: 22, fontWeight: "800" },
+  nombre: { color: colores.titulo, fontSize: 18, fontWeight: "800" },
+  programa: { color: colores.textoSecundario, fontSize: 14, marginTop: 3 },
+  rol: { color: colores.acento, fontSize: 12, fontWeight: "800", marginTop: 4 },
+  datos: {
+    backgroundColor: colores.blanco,
+    borderColor: colores.borde,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  dato: { alignItems: "center", flexDirection: "row", gap: 10, paddingVertical: 10 },
+  datoTexto: { color: colores.texto, flex: 1, fontSize: 14 },
 });

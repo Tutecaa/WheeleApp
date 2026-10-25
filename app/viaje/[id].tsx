@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,22 +10,25 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { cancelarViaje, obtenerViaje } from "@/services/viajes.service";
 import { useSesion } from "@/hooks/useSesion";
 import { Boton } from "@/components/Boton";
 import { CampoTexto } from "@/components/CampoTexto";
+import { Encabezado } from "@/components/Encabezado";
 import { Mapa, type PuntoMapa } from "@/components/Mapa";
-import { etiquetaEstado, nombreLugar, salidaVencida } from "@/components/TarjetaViaje";
+import { ChipEstado, nombreLugar, salidaVencida } from "@/components/TarjetaViaje";
 import { colores } from "@/constants/colores";
 import { LONGITUD_MAXIMA_MOTIVO_CANCELACION } from "@/constants/config";
 import type { Viaje } from "@/types";
 import { confirmar } from "@/utils/confirmar";
 import {
   formatearAporte,
+  formatearDia,
   formatearDistancia,
   formatearDuracion,
-  formatearFechaHora,
+  formatearHora,
 } from "@/utils/formato";
 
 function puntosDelViaje(viaje: Viaje): PuntoMapa[] {
@@ -107,22 +109,19 @@ export default function DetalleViaje() {
 
   if (!viaje) {
     return (
-      <SafeAreaView style={[styles.safeArea, styles.centrado]}>
-        {error ? (
-          <View style={styles.container}>
-            <Text style={styles.error}>{error}</Text>
-            <Pressable accessibilityRole="link" onPress={volver}>
-              <Text style={styles.backLink}>← Volver</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <ActivityIndicator color={colores.primario} />
-        )}
+      <SafeAreaView edges={["top"]} style={styles.safeArea}>
+        <Encabezado onVolver={volver} titulo="Detalle del viaje" />
+        <View style={[styles.flex, styles.centrado]}>
+          {error ? (
+            <Text style={[styles.error, styles.container]}>{error}</Text>
+          ) : (
+            <ActivityIndicator color={colores.primario} />
+          )}
+        </View>
       </SafeAreaView>
     );
   }
 
-  const estado = etiquetaEstado(viaje);
   const esConductor = perfil?.id === viaje.conductorId;
   // RF6: solo se modifica o cancela un viaje que no ha iniciado.
   const modificable = esConductor && viaje.estado === "publicado";
@@ -130,37 +129,44 @@ export default function DetalleViaje() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
+      <Encabezado derecha={<ChipEstado viaje={viaje} />} onVolver={volver} titulo="Detalle del viaje" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.flex}
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.container}>
-            <Pressable accessibilityRole="link" onPress={volver}>
-              <Text style={styles.backLink}>← Volver</Text>
-            </Pressable>
-            {mensaje ? <Text style={styles.mensaje}>{mensaje}</Text> : null}
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            <View style={styles.encabezado}>
-              <Text style={styles.title}>{formatearFechaHora(viaje.fechaHoraSalida)}</Text>
-              <Text style={[styles.estado, { backgroundColor: estado.fondo, color: estado.color }]}>
-                {estado.texto}
-              </Text>
-            </View>
-          </View>
-
           <Mapa puntos={puntosDelViaje(viaje)} style={styles.mapa} trazado={viaje.trazadoRuta} />
 
           <View style={styles.container}>
+            {mensaje ? (
+              <View style={styles.mensajeCaja}>
+                <Ionicons color={colores.primario} name="checkmark-circle" size={18} />
+                <Text style={styles.mensaje}>{mensaje}</Text>
+              </View>
+            ) : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <View style={styles.fechaFila}>
+              <View style={styles.fechaTarjeta}>
+                <Text style={styles.filaEtiqueta}>Fecha</Text>
+                <Text style={styles.fechaValor}>{formatearDia(viaje.fechaHoraSalida)}</Text>
+              </View>
+              <View style={styles.fechaTarjeta}>
+                <Text style={styles.filaEtiqueta}>Hora</Text>
+                <Text style={styles.fechaValor}>{formatearHora(viaje.fechaHoraSalida)}</Text>
+              </View>
+            </View>
+
             <View style={styles.tarjeta}>
-              <Fila etiqueta="A · Origen" valor={nombreLugar(viaje.origen.nombre)} />
+              <Fila color={colores.primario} etiqueta="Origen" valor={nombreLugar(viaje.origen.nombre)} />
               {viaje.paradasIntermedias.length > 0 ? (
                 <Fila
+                  color={colores.acento}
                   etiqueta="Paradas"
                   valor={`${viaje.paradasIntermedias.length} intermedia${viaje.paradasIntermedias.length === 1 ? "" : "s"}`}
                 />
               ) : null}
-              <Fila etiqueta="B · Destino" valor={nombreLugar(viaje.destino.nombre)} />
+              <Fila color={colores.primarioOscuro} etiqueta="Destino" valor={nombreLugar(viaje.destino.nombre)} />
               <Fila
                 etiqueta="Recorrido"
                 valor={`${formatearDistancia(viaje.distanciaMetros)} · unos ${formatearDuracion(viaje.duracionSegundos)}`}
@@ -168,8 +174,18 @@ export default function DetalleViaje() {
             </View>
 
             <View style={styles.tarjeta}>
-              <Fila etiqueta="Cupos disponibles" valor={`${viaje.cuposDisponibles} de ${viaje.cuposTotales}`} />
-              <Fila etiqueta="Aporte sugerido" valor={formatearAporte(viaje.aporteSugerido)} />
+              <View style={styles.resumenFila}>
+                <View>
+                  <Text style={styles.filaEtiqueta}>Cupos disponibles</Text>
+                  <Text style={styles.cupos}>
+                    {viaje.cuposDisponibles} <Text style={styles.cuposTotal}>de {viaje.cuposTotales}</Text>
+                  </Text>
+                </View>
+                <View style={styles.alinearDerecha}>
+                  <Text style={styles.filaEtiqueta}>Aporte sugerido</Text>
+                  <Text style={styles.aporte}>{formatearAporte(viaje.aporteSugerido)}</Text>
+                </View>
+              </View>
               {viaje.vehiculo ? (
                 <Fila
                   etiqueta="Vehículo"
@@ -253,53 +269,73 @@ export default function DetalleViaje() {
   );
 }
 
-function Fila({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+// Fila de datos; con `color` muestra el punto del recorrido, como en el formulario.
+function Fila({ etiqueta, valor, color }: { etiqueta: string; valor: string; color?: string }) {
   return (
     <View style={styles.fila}>
-      <Text style={styles.filaEtiqueta}>{etiqueta}</Text>
-      <Text style={styles.filaValor}>{valor}</Text>
+      {color ? <View style={[styles.punto, { backgroundColor: color }]} /> : null}
+      <View style={styles.flex}>
+        <Text style={styles.filaEtiqueta}>{etiqueta}</Text>
+        <Text style={styles.filaValor}>{valor}</Text>
+      </View>
     </View>
   );
 }
+
+const etiquetaMayuscula = {
+  color: colores.textoSecundario,
+  fontSize: 11,
+  fontWeight: "800",
+  letterSpacing: 0.8,
+  textTransform: "uppercase",
+} as const;
 
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colores.fondo, flex: 1 },
   centrado: { alignItems: "center", justifyContent: "center" },
   flex: { flex: 1 },
   scroll: { paddingBottom: 40 },
-  container: { paddingHorizontal: 24, paddingTop: 16 },
-  backLink: { color: colores.primario, fontSize: 14, fontWeight: "700", marginBottom: 16 },
-  mensaje: { color: colores.primario, fontSize: 15, fontWeight: "800", marginBottom: 8 },
-  encabezado: {
+  container: { paddingHorizontal: 18, paddingTop: 14 },
+  mensajeCaja: {
     alignItems: "center",
+    backgroundColor: colores.primarioSuave,
+    borderRadius: 12,
     flexDirection: "row",
-    gap: 10,
-    justifyContent: "space-between",
-    marginBottom: 14,
+    gap: 8,
+    marginBottom: 12,
+    padding: 12,
   },
-  title: { color: colores.titulo, flex: 1, fontSize: 22, fontWeight: "800", lineHeight: 28 },
+  mensaje: { color: colores.primario, flex: 1, fontSize: 14, fontWeight: "800" },
   subtitulo: { color: colores.titulo, fontSize: 18, fontWeight: "800" },
-  estado: {
-    borderRadius: 8,
-    fontSize: 12,
-    fontWeight: "800",
-    overflow: "hidden",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  mapa: { backgroundColor: colores.menta, height: 280 },
+  fechaFila: { flexDirection: "row", gap: 10, marginBottom: 12 },
+  fechaTarjeta: {
+    backgroundColor: colores.blanco,
+    borderColor: colores.borde,
+    borderRadius: 14,
+    borderWidth: 1,
+    flex: 1,
+    padding: 14,
   },
-  mapa: { height: 300 },
+  fechaValor: { color: colores.titulo, fontSize: 16, fontWeight: "800", marginTop: 4 },
   tarjeta: {
     backgroundColor: colores.blanco,
     borderColor: colores.borde,
     borderRadius: 14,
     borderWidth: 1,
     marginBottom: 12,
-    marginTop: 4,
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
-  fila: { paddingVertical: 6 },
-  filaEtiqueta: { color: colores.textoSecundario, fontSize: 12, fontWeight: "700" },
-  filaValor: { color: colores.texto, fontSize: 15, marginTop: 2 },
+  resumenFila: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 },
+  alinearDerecha: { alignItems: "flex-end" },
+  cupos: { color: colores.primario, fontSize: 22, fontWeight: "800", marginTop: 2 },
+  cuposTotal: { color: colores.textoSecundario, fontSize: 14, fontWeight: "600" },
+  aporte: { color: colores.acento, fontSize: 22, fontWeight: "800", marginTop: 2 },
+  fila: { alignItems: "center", flexDirection: "row", gap: 12, paddingVertical: 7 },
+  punto: { borderRadius: 5, height: 10, width: 10 },
+  filaEtiqueta: etiquetaMayuscula,
+  filaValor: { color: colores.titulo, fontSize: 15, fontWeight: "600", marginTop: 2 },
   nota: { color: colores.textoSecundario, fontSize: 14, lineHeight: 20, marginTop: 6 },
   cancelacion: {
     backgroundColor: colores.blanco,

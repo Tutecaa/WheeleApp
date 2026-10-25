@@ -84,10 +84,11 @@ export function manejarMensaje(datos: unknown, manejadores: Manejadores) {
   }
 }
 
+// Los mismos colores de las tarjetas de puntos del formulario.
 const COLORES_PUNTO: Record<TipoPuntoMapa, string> = {
   origen: colores.primario,
-  parada: "#4C5FA8",
-  destino: colores.titulo,
+  parada: colores.acento,
+  destino: colores.primarioOscuro,
 };
 
 // Página del mapa. En el celular habla con la app por
