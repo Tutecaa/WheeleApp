@@ -1,6 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Tabs } from "expo-router";
-import type { ColorValue } from "react-native";
 
 import { useSesion } from "@/hooks/useSesion";
 import { colores } from "@/constants/colores";
@@ -8,7 +7,9 @@ import { colores } from "@/constants/colores";
 type NombreIcono = keyof typeof Ionicons.glyphMap;
 
 function icono(nombre: NombreIcono) {
-  function IconoPestana({ color, size }: { color: ColorValue; size: number }) {
+  // Los mismos colores que tabBarActiveTintColor y tabBarInactiveTintColor.
+  function IconoPestana({ focused, size }: { focused: boolean; size: number }) {
+    const color = focused ? colores.primario : colores.textoSecundario;
     return <Ionicons color={color} name={nombre} size={size} />;
   }
   return IconoPestana;

@@ -9,7 +9,10 @@ export type { PuntoMapa, PropsMapa } from "@/components/mapaLeaflet";
 
 // Mapa OSM con Leaflet dentro de un WebView. En web se usa Mapa.web.tsx.
 export function Mapa(props: PropsMapa) {
-  const webView = useRef<WebView>(null);
+  // react-native-webview declara sus props como `WebViewProps & P` con
+  // P = undefined, que con los tipos de React 19.3 queda en `never`. Por eso
+  // se indica P = object aquí y en el JSX.
+  const webView = useRef<WebView<object>>(null);
   const [listo, setListo] = useState(false);
   const [fallo, setFallo] = useState(false);
 
@@ -47,7 +50,7 @@ export function Mapa(props: PropsMapa) {
 
   return (
     <View style={[styles.contenedor, props.style]}>
-      <WebView
+      <WebView<object>
         ref={webView}
         // baseUrl da a la página un origen https, así los mosaicos de
         // OpenStreetMap se piden con un Referer válido.
