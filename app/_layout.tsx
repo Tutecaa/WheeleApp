@@ -36,6 +36,7 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="viaje/[id]" />
         <Stack.Screen name="viaje/editar/[id]" />
+        <Stack.Screen name="usuario/[id]" />
         <Stack.Screen name="conductor/vehiculo" />
         <Stack.Screen name="admin/habilitaciones" />
       </Stack.Protected>

@@ -5,6 +5,8 @@ import {
   LONGITUD_MINIMA_CONTRASENA,
   MODELO_VEHICULO_MINIMO,
   PUESTOS_VEHICULO_MAXIMO,
+  RADIO_BUSQUEDA_MAXIMO_METROS,
+  RADIO_BUSQUEDA_MINIMO_METROS,
   TAMANO_MAXIMO_DOCUMENTO_BYTES,
   TIPOS_DOCUMENTO_PERMITIDOS,
 } from "@/constants/config";
@@ -141,5 +143,30 @@ export function validarSalidaViaje(
     return `El aporte sugerido debe ser un valor entre $0 y $${APORTE_SUGERIDO_MAXIMO.toLocaleString("es-CO")}.`;
   }
 
+  return null;
+}
+
+export type CriteriosBusqueda = {
+  partida: Coordenada | null;
+  desde: Date;
+  hasta: Date;
+  radioMetros: number;
+};
+
+// RF8: punto marcado, franja en orden, que no haya pasado y radio válido.
+export function validarBusqueda(criterios: CriteriosBusqueda): string | null {
+  if (!criterios.partida) return "Marca tu punto de partida en el mapa.";
+  if (criterios.hasta.getTime() <= criterios.desde.getTime()) {
+    return "La hora final debe ser posterior a la inicial. Corrígela.";
+  }
+  if (criterios.hasta.getTime() <= Date.now()) {
+    return "Esa fecha y franja ya pasaron. Elige una fecha u hora futura.";
+  }
+  if (
+    criterios.radioMetros < RADIO_BUSQUEDA_MINIMO_METROS ||
+    criterios.radioMetros > RADIO_BUSQUEDA_MAXIMO_METROS
+  ) {
+    return "Elige un radio de tolerancia válido.";
+  }
   return null;
 }

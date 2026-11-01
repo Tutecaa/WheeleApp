@@ -42,7 +42,7 @@ export interface Usuario {
   codigoInstitucional: string;
   correoInstitucional: string; // @uis.edu.co o @correo.uis.edu.co
   programaAcademico: string;
-  fotoPerfilUrl?: string;
+  fotoPerfilUrl?: string; // URL pública de la foto, si el usuario subió una
   rol: RolUsuario;
   estado: EstadoUsuario;
   correoVerificado: boolean;
@@ -51,6 +51,29 @@ export interface Usuario {
   fechaCreacion: string;
   fechaActualizacion: string;
 }
+
+/**
+ * RF14: Lo que cualquier usuario puede ver de otro. Nunca incluye el correo,
+ * el código institucional ni datos de contacto.
+ */
+export interface PerfilPublico {
+  id: string;
+  nombreCompleto: string;
+  programaAcademico: string;
+  fotoPerfilUrl?: string;
+  promedioCalificacion: number; // 0 mientras no tenga calificaciones
+  totalViajes: number;
+  viajesPublicados: number;
+  esConductor: boolean; // tiene un vehículo aprobado
+  miembroDesde: string;
+}
+
+// El conductor tal como se muestra en un resultado o en el detalle de un viaje.
+export type ConductorViaje = Pick<
+  PerfilPublico,
+  'id' | 'nombreCompleto' | 'fotoPerfilUrl' | 'promedioCalificacion'
+> &
+  Partial<Pick<PerfilPublico, 'programaAcademico' | 'totalViajes'>>;
 
 /**
  * RF3, RF16: Registro de Vehículos y Habilitación de Conductores
@@ -88,8 +111,13 @@ export interface Viaje {
   id: string;
   conductorId: string;
   vehiculoId: string;
-  // Solo llega si quien consulta puede ver el vehículo (RLS).
-  vehiculo?: Pick<Vehiculo, 'placa' | 'marca' | 'linea' | 'color'>;
+  // La placa solo llega al conductor y al administrador; el pasajero ve la
+  // marca, la línea y el color para reconocer el carro.
+  vehiculo?: Pick<Vehiculo, 'marca' | 'linea' | 'color'> & { placa?: string };
+  // Datos públicos del conductor (RF9). Llegan en el detalle del viaje.
+  conductor?: ConductorViaje;
+  // Qué tan cerca pasa la ruta del punto de partida del pasajero (RF9).
+  proximidad?: Proximidad;
   origen: Ubicacion;
   destino: Ubicacion;
   paradasIntermedias: Ubicacion[];
@@ -104,6 +132,33 @@ export interface Viaje {
   motivoCancelacion?: string;
   fechaCreacion: string;
   fechaActualizacion: string;
+}
+
+/**
+ * RF8, RF9: Distancia en línea recta entre el punto de partida del pasajero
+ * y el trazado, y el punto de la ruta donde se da.
+ */
+export interface Proximidad {
+  distanciaMetros: number;
+  puntoCercano: Coordenada;
+}
+
+/**
+ * RF8: Un viaje que pasa cerca del punto de partida del pasajero.
+ */
+export interface ResultadoBusqueda {
+  id: string;
+  conductor: ConductorViaje;
+  origenNombre?: string;
+  destinoNombre?: string;
+  numeroParadas: number;
+  fechaHoraSalida: string;
+  cuposTotales: number;
+  cuposDisponibles: number;
+  aporteSugerido: number;
+  distanciaMetros: number;
+  duracionSegundos: number;
+  distanciaProximidadMetros: number;
 }
 
 /**

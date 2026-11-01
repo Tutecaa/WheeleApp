@@ -1,6 +1,7 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 
 import { supabase } from "@/lib/supabase";
+import { urlFotoPerfil } from "@/services/perfiles.service";
 import {
   LONGITUD_MAXIMA_MOTIVO_CANCELACION,
   LONGITUD_MAXIMA_NOMBRE_LUGAR,
@@ -182,6 +183,68 @@ export async function publicarViaje(datos: DatosPublicacion): Promise<string> {
     );
   }
   return data.id;
+}
+
+// Fila de get_trip_detail (009_busqueda_proximidad.sql): las columnas de
+// trip_details más el conductor y la proximidad al punto de partida.
+type DetalleFila = ViajeFila & {
+  conductor_nombre: string;
+  conductor_programa: string;
+  conductor_foto: string | null;
+  conductor_promedio: number | string;
+  conductor_total_viajes: number;
+  distancia_proximidad_metros: number | null;
+  cercano_latitud: number | null;
+  cercano_longitud: number | null;
+};
+
+// RF9: viaje con su trazado y los datos públicos del conductor. Con el punto
+// de partida del pasajero incluye la distancia al trazado y el punto donde
+// la ruta pasa más cerca. Lo pueden ver el conductor y cualquier pasajero.
+export async function obtenerDetalleViaje(id: string, partida?: Coordenada): Promise<Viaje> {
+  const { data, error } = await supabase
+    .rpc("get_trip_detail", {
+      p_viaje_id: id,
+      p_latitud: partida?.latitud ?? null,
+      p_longitud: partida?.longitud ?? null,
+    })
+    .maybeSingle<DetalleFila>();
+
+  if (error) {
+    throw new Error("No se pudo cargar el viaje. Revisa tu conexión e intenta de nuevo.");
+  }
+  if (!data) {
+    throw new Error("Este viaje no existe o ya no está disponible.");
+  }
+
+  const viaje = aViaje(data);
+  viaje.vehiculo = data.vehiculo_marca
+    ? {
+        placa: data.vehiculo_placa ?? undefined,
+        marca: data.vehiculo_marca,
+        linea: data.vehiculo_linea ?? "",
+        color: data.vehiculo_color ?? "",
+      }
+    : undefined;
+  viaje.conductor = {
+    id: data.conductor_id,
+    nombreCompleto: data.conductor_nombre,
+    programaAcademico: data.conductor_programa,
+    fotoPerfilUrl: urlFotoPerfil(data.conductor_foto),
+    promedioCalificacion: Number(data.conductor_promedio),
+    totalViajes: data.conductor_total_viajes,
+  };
+  if (
+    data.distancia_proximidad_metros !== null &&
+    data.cercano_latitud !== null &&
+    data.cercano_longitud !== null
+  ) {
+    viaje.proximidad = {
+      distanciaMetros: data.distancia_proximidad_metros,
+      puntoCercano: { latitud: data.cercano_latitud, longitud: data.cercano_longitud },
+    };
+  }
+  return viaje;
 }
 
 // Viaje con su trazado. RLS decide si el usuario puede verlo.

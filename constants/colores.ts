@@ -15,6 +15,10 @@ export const colores = {
   placeholder: "#9AA59F",
   borde: "#DCE6E0",
   error: "#B33D32",
+  errorSuave: "#F8E3E1",
+  // Punto de partida del pasajero en el mapa (RF8, RF9).
+  info: "#2F6FB8",
+  infoSuave: "#E4EEF8",
   avisoFondo: "#FFF4DE",
   avisoBorde: "#F1D296",
   avisoTexto: "#815B15",

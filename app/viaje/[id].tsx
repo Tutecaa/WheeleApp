@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,16 +13,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { cancelarViaje, obtenerViaje } from "@/services/viajes.service";
+import { cancelarViaje, obtenerDetalleViaje } from "@/services/viajes.service";
 import { useSesion } from "@/hooks/useSesion";
+import { Avatar } from "@/components/Avatar";
 import { Boton } from "@/components/Boton";
 import { CampoTexto } from "@/components/CampoTexto";
 import { Encabezado } from "@/components/Encabezado";
+import { Estrellas } from "@/components/Estrellas";
 import { Mapa, type PuntoMapa } from "@/components/Mapa";
 import { ChipEstado, nombreLugar, salidaVencida } from "@/components/TarjetaViaje";
 import { colores } from "@/constants/colores";
 import { LONGITUD_MAXIMA_MOTIVO_CANCELACION } from "@/constants/config";
-import type { Viaje } from "@/types";
+import type { Coordenada, Viaje } from "@/types";
 import { confirmar } from "@/utils/confirmar";
 import {
   formatearAporte,
@@ -31,8 +34,10 @@ import {
   formatearHora,
 } from "@/utils/formato";
 
-function puntosDelViaje(viaje: Viaje): PuntoMapa[] {
-  return [
+// Con el punto de partida del pasajero se marcan él y el punto de la ruta que
+// le pasa más cerca (RF9).
+function puntosDelViaje(viaje: Viaje, partida?: Coordenada): PuntoMapa[] {
+  const puntos: PuntoMapa[] = [
     { coordenadas: viaje.origen.coordenadas, tipo: "origen", etiqueta: "A" },
     ...viaje.paradasIntermedias.map((parada, indice) => ({
       coordenadas: parada.coordenadas,
@@ -41,13 +46,35 @@ function puntosDelViaje(viaje: Viaje): PuntoMapa[] {
     })),
     { coordenadas: viaje.destino.coordenadas, tipo: "destino", etiqueta: "B" },
   ];
+  if (partida && viaje.proximidad) {
+    puntos.push(
+      { coordenadas: viaje.proximidad.puntoCercano, tipo: "cercano", etiqueta: "" },
+      { coordenadas: partida, tipo: "partida", etiqueta: "Tú" },
+    );
+  }
+  return puntos;
+}
+
+// Punto de partida que llega de la búsqueda como texto; undefined si falta
+// o no es un número.
+function aPunto(lat?: string, lng?: string): Coordenada | undefined {
+  if (!lat || !lng) return undefined;
+  const latitud = Number(lat);
+  const longitud = Number(lng);
+  return Number.isFinite(latitud) && Number.isFinite(longitud) ? { latitud, longitud } : undefined;
 }
 
 // Detalle de un viaje. El conductor que lo publicó puede modificarlo o
-// cancelarlo mientras no haya iniciado (RF6). La vista del pasajero (RF9)
-// se completa en el Sprint 3.
+// cancelarlo mientras no haya iniciado (RF6). El pasajero ve la ruta, qué
+// tan cerca pasa de su punto de partida y los datos públicos del conductor (RF9).
 export default function DetalleViaje() {
-  const { id, aviso } = useLocalSearchParams<{ id: string; aviso?: string }>();
+  const { id, aviso, lat, lng } = useLocalSearchParams<{
+    id: string;
+    aviso?: string;
+    lat?: string;
+    lng?: string;
+  }>();
+  const partida = aPunto(lat, lng);
   const { perfil } = useSesion();
   const [viaje, setViaje] = useState<Viaje | null>(null);
   const [error, setError] = useState("");
@@ -60,12 +87,12 @@ export default function DetalleViaje() {
 
   const cargar = useCallback(async () => {
     try {
-      setViaje(await obtenerViaje(id));
+      setViaje(await obtenerDetalleViaje(id, aPunto(lat, lng)));
       setError("");
     } catch (cargaError) {
       setError((cargaError as Error).message);
     }
-  }, [id]);
+  }, [id, lat, lng]);
 
   // Se recarga al volver de editar.
   useFocusEffect(
@@ -76,7 +103,7 @@ export default function DetalleViaje() {
 
   function volver() {
     if (router.canGoBack()) router.back();
-    else router.replace("/mis-viajes");
+    else router.replace(partida ? "/buscar" : "/mis-viajes");
   }
 
   async function confirmarCancelacion() {
@@ -123,9 +150,19 @@ export default function DetalleViaje() {
   }
 
   const esConductor = perfil?.id === viaje.conductorId;
+  const esPasajero = !esConductor && perfil?.rol !== "administrador";
   // RF6: solo se modifica o cancela un viaje que no ha iniciado.
   const modificable = esConductor && viaje.estado === "publicado";
   const reservas = viaje.cuposTotales - viaje.cuposDisponibles;
+  // RF9: si el viaje se canceló, ya salió o se quedó sin cupos, se informa
+  // y no se puede solicitar.
+  const vencido = salidaVencida(viaje) || viaje.estado === "en_curso" || viaje.estado === "finalizado";
+  const sinCupos = viaje.estado === "publicado" && !vencido && viaje.cuposDisponibles === 0;
+  const vehiculo = viaje.vehiculo
+    ? [viaje.vehiculo.placa, `${viaje.vehiculo.marca} ${viaje.vehiculo.linea}`.trim(), viaje.vehiculo.color]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
@@ -135,7 +172,11 @@ export default function DetalleViaje() {
         style={styles.flex}
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Mapa puntos={puntosDelViaje(viaje)} style={styles.mapa} trazado={viaje.trazadoRuta} />
+          <Mapa
+            puntos={puntosDelViaje(viaje, esPasajero ? partida : undefined)}
+            style={styles.mapa}
+            trazado={viaje.trazadoRuta}
+          />
 
           <View style={styles.container}>
             {mensaje ? (
@@ -145,6 +186,43 @@ export default function DetalleViaje() {
               </View>
             ) : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            {esPasajero && viaje.estado === "cancelado" ? (
+              <Aviso
+                icono="close-circle"
+                texto={viaje.motivoCancelacion ? `Motivo: ${viaje.motivoCancelacion}` : undefined}
+                tipo="error"
+                titulo="El conductor canceló este viaje"
+              />
+            ) : null}
+            {esPasajero && viaje.estado !== "cancelado" && vencido ? (
+              <Aviso icono="time" tipo="neutro" titulo="Este viaje ya salió" />
+            ) : null}
+            {esPasajero && sinCupos ? (
+              <Aviso
+                icono="people"
+                texto="Busca otro viaje o vuelve más tarde por si se libera un cupo."
+                tipo="aviso"
+                titulo="Este viaje ya no tiene cupos"
+              />
+            ) : null}
+
+            {esPasajero && viaje.proximidad ? (
+              <View style={styles.proximidad}>
+                <View style={styles.proximidadIcono}>
+                  <Ionicons color={colores.blanco} name="walk" size={22} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.proximidadTitulo}>
+                    Pasa a {formatearDistancia(viaje.proximidad.distanciaMetros)} de tu punto
+                  </Text>
+                  <Text style={styles.proximidadTexto}>
+                    Es la distancia en línea recta hasta el punto verde de la ruta. Revisa en el mapa si
+                    te sirve para encontrarte con el conductor.
+                  </Text>
+                </View>
+              </View>
+            ) : null}
 
             <View style={styles.fechaFila}>
               <View style={styles.fechaTarjeta}>
@@ -186,15 +264,57 @@ export default function DetalleViaje() {
                   <Text style={styles.aporte}>{formatearAporte(viaje.aporteSugerido)}</Text>
                 </View>
               </View>
-              {viaje.vehiculo ? (
-                <Fila
-                  etiqueta="Vehículo"
-                  valor={`${viaje.vehiculo.placa} · ${viaje.vehiculo.marca} ${viaje.vehiculo.linea} · ${viaje.vehiculo.color}`}
-                />
-              ) : null}
+              {vehiculo ? <Fila etiqueta="Vehículo" valor={vehiculo} /> : null}
             </View>
 
-            {viaje.estado === "cancelado" && viaje.motivoCancelacion ? (
+            {!esConductor && viaje.conductor ? (
+              <Pressable
+                accessibilityHint="Abre el perfil público del conductor"
+                accessibilityRole="button"
+                onPress={() =>
+                  router.push({ pathname: "/usuario/[id]", params: { id: viaje.conductorId } })
+                }
+                style={({ pressed }) => [styles.tarjeta, styles.conductor, pressed && styles.presionado]}
+              >
+                <Avatar
+                  fotoUrl={viaje.conductor.fotoPerfilUrl}
+                  nombre={viaje.conductor.nombreCompleto}
+                  tamano={54}
+                />
+                <View style={styles.flex}>
+                  <Text style={styles.filaEtiqueta}>Conductor</Text>
+                  <Text numberOfLines={1} style={styles.conductorNombre}>
+                    {viaje.conductor.nombreCompleto}
+                  </Text>
+                  {viaje.conductor.programaAcademico ? (
+                    <Text numberOfLines={1} style={styles.conductorPrograma}>
+                      {viaje.conductor.programaAcademico}
+                    </Text>
+                  ) : null}
+                  <View style={styles.conductorCalificacion}>
+                    <Estrellas conNumero tamano={14} valor={viaje.conductor.promedioCalificacion} />
+                  </View>
+                </View>
+                <Ionicons color={colores.placeholder} name="chevron-forward" size={20} />
+              </Pressable>
+            ) : null}
+
+            {esPasajero ? (
+              <>
+                <Boton
+                  deshabilitado
+                  onPress={() => {}}
+                  titulo={sinCupos ? "Sin cupos disponibles" : "Solicitar cupo"}
+                />
+                {viaje.estado === "publicado" && !vencido && !sinCupos ? (
+                  <Text style={[styles.nota, styles.notaCentrada]}>
+                    Muy pronto podrás solicitar tu cupo desde aquí.
+                  </Text>
+                ) : null}
+              </>
+            ) : null}
+
+            {esConductor && viaje.estado === "cancelado" && viaje.motivoCancelacion ? (
               <Text style={styles.nota}>Motivo de la cancelación: {viaje.motivoCancelacion}</Text>
             ) : null}
             {esConductor && (viaje.estado === "en_curso" || viaje.estado === "finalizado") ? (
@@ -269,6 +389,36 @@ export default function DetalleViaje() {
   );
 }
 
+const ESTILOS_AVISO = {
+  error: { fondo: colores.errorSuave, color: colores.error },
+  aviso: { fondo: colores.avisoFondo, color: colores.avisoTexto },
+  neutro: { fondo: colores.borde, color: colores.texto },
+} as const;
+
+// Aviso destacado para el pasajero: viaje cancelado, vencido o sin cupos.
+function Aviso({
+  titulo,
+  texto,
+  icono,
+  tipo,
+}: {
+  titulo: string;
+  texto?: string;
+  icono: keyof typeof Ionicons.glyphMap;
+  tipo: keyof typeof ESTILOS_AVISO;
+}) {
+  const estilo = ESTILOS_AVISO[tipo];
+  return (
+    <View style={[styles.aviso, { backgroundColor: estilo.fondo }]}>
+      <Ionicons color={estilo.color} name={icono} size={20} />
+      <View style={styles.flex}>
+        <Text style={[styles.avisoTitulo, { color: estilo.color }]}>{titulo}</Text>
+        {texto ? <Text style={[styles.avisoTexto, { color: estilo.color }]}>{texto}</Text> : null}
+      </View>
+    </View>
+  );
+}
+
 // Fila de datos; con `color` muestra el punto del recorrido, como en el formulario.
 function Fila({ etiqueta, valor, color }: { etiqueta: string; valor: string; color?: string }) {
   return (
@@ -337,6 +487,41 @@ const styles = StyleSheet.create({
   filaEtiqueta: etiquetaMayuscula,
   filaValor: { color: colores.titulo, fontSize: 15, fontWeight: "600", marginTop: 2 },
   nota: { color: colores.textoSecundario, fontSize: 14, lineHeight: 20, marginTop: 6 },
+  notaCentrada: { marginTop: 10, textAlign: "center" },
+  presionado: { opacity: 0.7 },
+  aviso: {
+    alignItems: "flex-start",
+    borderRadius: 14,
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+    padding: 14,
+  },
+  avisoTitulo: { fontSize: 15, fontWeight: "800" },
+  avisoTexto: { fontSize: 13, lineHeight: 19, marginTop: 3 },
+  proximidad: {
+    alignItems: "center",
+    backgroundColor: colores.infoSuave,
+    borderRadius: 14,
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+    padding: 14,
+  },
+  proximidadIcono: {
+    alignItems: "center",
+    backgroundColor: colores.info,
+    borderRadius: 22,
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+  },
+  proximidadTitulo: { color: colores.info, fontSize: 16, fontWeight: "800" },
+  proximidadTexto: { color: colores.texto, fontSize: 12, lineHeight: 17, marginTop: 3 },
+  conductor: { alignItems: "center", flexDirection: "row", gap: 14, paddingVertical: 14 },
+  conductorNombre: { color: colores.titulo, fontSize: 16, fontWeight: "800", marginTop: 2 },
+  conductorPrograma: { color: colores.textoSecundario, fontSize: 13, marginTop: 1 },
+  conductorCalificacion: { marginTop: 6 },
   cancelacion: {
     backgroundColor: colores.blanco,
     borderColor: colores.borde,

@@ -54,6 +54,9 @@ export default function Register() {
             Te enviamos un enlace de confirmación. Confírmalo antes de iniciar
             sesión.
           </Text>
+          <Text style={styles.description}>
+            Cuando entres, podrás agregar tu foto de perfil desde la pestaña Perfil.
+          </Text>
           <Boton onPress={() => router.replace("/login")} titulo="Ir a iniciar sesión" />
         </View>
       </View>
@@ -121,6 +124,10 @@ export default function Register() {
             value={confirmation}
           />
 
+          <Text style={styles.hint}>
+            La foto de perfil es opcional: la agregas desde tu perfil después de iniciar sesión.
+          </Text>
+
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <Boton
@@ -143,5 +150,6 @@ const styles = StyleSheet.create({
   title: { color: colores.titulo, fontSize: 24, fontWeight: "800", lineHeight: 31 },
   description: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 9 },
   configurationNotice: { color: colores.avisoTexto, fontSize: 13, marginTop: 8 },
+  hint: { color: colores.textoSecundario, fontSize: 13, lineHeight: 18, marginTop: 14 },
   error: { color: colores.error, fontSize: 13, lineHeight: 18, marginTop: 12 },
 });

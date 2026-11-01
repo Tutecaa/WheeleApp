@@ -7,7 +7,9 @@ import type { Coordenada } from "@/types";
 // Parte común de Mapa.tsx (WebView en el celular) y Mapa.web.tsx (iframe en
 // web): la página de Leaflet + OpenStreetMap y los mensajes que intercambia.
 
-export type TipoPuntoMapa = "origen" | "parada" | "destino";
+// "partida" es el punto del pasajero (RF8) y "cercano", el punto de la ruta
+// que pasa más cerca de él (RF9).
+export type TipoPuntoMapa = "origen" | "parada" | "destino" | "partida" | "cercano";
 
 export type PuntoMapa = {
   coordenadas: Coordenada;
@@ -22,6 +24,8 @@ export type PropsMapa = {
   editable?: boolean;
   onTocar?: (coordenada: Coordenada) => void;
   onMoverPunto?: (indice: number, coordenada: Coordenada) => void;
+  // Radio de tolerancia alrededor del punto de partida, en metros.
+  radioMetros?: number;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -31,6 +35,7 @@ export type EstadoMapa = {
   puntos: PuntoMapa[];
   trazado: Coordenada[];
   editable: boolean;
+  radioMetros: number;
 };
 
 // Lo que la página envía a la app.
@@ -46,6 +51,7 @@ export function crearEstado(props: PropsMapa): EstadoMapa {
     puntos: props.puntos,
     trazado: props.trazado ?? [],
     editable: Boolean(props.editable),
+    radioMetros: props.radioMetros ?? 0,
   };
 }
 
@@ -89,6 +95,8 @@ const COLORES_PUNTO: Record<TipoPuntoMapa, string> = {
   origen: colores.primario,
   parada: colores.acento,
   destino: colores.primarioOscuro,
+  partida: colores.info,
+  cercano: colores.primario,
 };
 
 // Página del mapa. En el celular habla con la app por
@@ -106,6 +114,14 @@ export const HTML_MAPA = `<!DOCTYPE html>
     box-shadow: 0 1px 4px rgba(0,0,0,.35); color: #FFFFFF; display: flex;
     font: 800 12px/1 -apple-system, system-ui, sans-serif; height: 24px;
     justify-content: center; width: 24px;
+  }
+  .marca-partida {
+    box-shadow: 0 0 0 6px rgba(47,111,184,.22), 0 1px 4px rgba(0,0,0,.35);
+    font-size: 11px; height: 28px; width: 28px;
+  }
+  .marca-cercano {
+    background: #FFFFFF; border: 4px solid ${colores.primario}; border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0,0,0,.35); height: 10px; width: 10px;
   }
 </style>
 </head>
@@ -134,8 +150,11 @@ export const HTML_MAPA = `<!DOCTYPE html>
     attribution: "&copy; colaboradores de OpenStreetMap"
   }).addTo(mapa);
 
+  var capaExtras = L.layerGroup().addTo(mapa);
   var capaPuntos = L.layerGroup().addTo(mapa);
   var capaRuta = null;
+  var ultimoRadio = 0;
+  var habiaPartida = false;
   var ultimoTrazado = "";
   var primerEstado = true;
   var editable = false;
@@ -145,6 +164,17 @@ export const HTML_MAPA = `<!DOCTYPE html>
   });
 
   function icono(punto) {
+    if (punto.tipo === "cercano") {
+      return L.divIcon({ className: "", html: '<div class="marca-cercano"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
+    }
+    if (punto.tipo === "partida") {
+      return L.divIcon({
+        className: "",
+        html: '<div class="marca marca-partida" style="background:' + COLORES.partida + '">' + punto.etiqueta + "</div>",
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+    }
     return L.divIcon({
       className: "",
       html: '<div class="marca" style="background:' + COLORES[punto.tipo] + '">' + punto.etiqueta + "</div>",
@@ -159,7 +189,7 @@ export const HTML_MAPA = `<!DOCTYPE html>
     estado.puntos.forEach(function (punto, indice) {
       var marca = L.marker([punto.coordenadas.latitud, punto.coordenadas.longitud], {
         icon: icono(punto),
-        draggable: editable,
+        draggable: editable && punto.tipo !== "cercano",
         keyboard: false
       });
       if (editable) {
@@ -170,6 +200,38 @@ export const HTML_MAPA = `<!DOCTYPE html>
       }
       marca.addTo(capaPuntos);
     });
+
+    var partida = null;
+    var cercano = null;
+    estado.puntos.forEach(function (punto) {
+      var posicion = [punto.coordenadas.latitud, punto.coordenadas.longitud];
+      if (punto.tipo === "partida") partida = posicion;
+      if (punto.tipo === "cercano") cercano = posicion;
+    });
+
+    // Radio de tolerancia y línea punteada hasta el punto más cercano de la ruta.
+    capaExtras.clearLayers();
+    var circulo = null;
+    if (partida && estado.radioMetros > 0) {
+      circulo = L.circle(partida, {
+        radius: estado.radioMetros,
+        color: "${colores.primario}",
+        weight: 1.5,
+        dashArray: "6 6",
+        fillColor: "${colores.primario}",
+        fillOpacity: 0.08,
+        interactive: false
+      }).addTo(capaExtras);
+    }
+    if (partida && cercano) {
+      L.polyline([partida, cercano], {
+        color: COLORES.partida,
+        weight: 3,
+        dashArray: "2 7",
+        lineCap: "round",
+        interactive: false
+      }).addTo(capaExtras);
+    }
 
     // La ruta solo se redibuja (y se encuadra) cuando cambia.
     var clave = JSON.stringify(estado.trazado);
@@ -185,7 +247,9 @@ export const HTML_MAPA = `<!DOCTYPE html>
           { color: "${colores.primario}", weight: 5, opacity: 0.85 }
         ).addTo(mapa);
         capaPuntos.eachLayer(function (capa) { capa.setZIndexOffset(1000); });
-        mapa.fitBounds(capaRuta.getBounds(), { padding: [36, 36] });
+        var limites = capaRuta.getBounds();
+        if (partida) limites.extend(partida);
+        mapa.fitBounds(limites, { padding: [36, 36] });
       }
     }
 
@@ -195,6 +259,13 @@ export const HTML_MAPA = `<!DOCTYPE html>
         { padding: [48, 48], maxZoom: 15 }
       );
     }
+    // Sin ruta, se encuadra el radio al marcar el punto o al cambiar el radio,
+    // pero no al arrastrar el punto.
+    if (!capaRuta && circulo && (!habiaPartida || estado.radioMetros !== ultimoRadio)) {
+      mapa.fitBounds(circulo.getBounds(), { padding: [20, 20] });
+    }
+    ultimoRadio = estado.radioMetros;
+    habiaPartida = Boolean(partida);
     primerEstado = false;
   }
 

@@ -7,11 +7,12 @@ import type { PropsCampoFechaHora } from "@/components/CampoFechaHora";
 const dos = (n: number) => String(n).padStart(2, "0");
 
 // "2026-10-25" y "06:30" en la hora local, los formatos de <input type="date|time">.
-function aFechaInput(fecha: Date): string {
+// También los usa CampoFranja.web.tsx.
+export function aFechaInput(fecha: Date): string {
   return `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}`;
 }
 
-function aHoraInput(fecha: Date): string {
+export function aHoraInput(fecha: Date): string {
   return `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
 }
 

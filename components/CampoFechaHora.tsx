@@ -16,7 +16,7 @@ export type PropsCampoFechaHora = {
   error?: string;
 };
 
-type Parte = "fecha" | "hora";
+export type Parte = "fecha" | "hora";
 
 // Punto de partida si aún no hay valor: la próxima hora en punto.
 export function proximaHora(): Date {
@@ -100,13 +100,15 @@ export function CampoFechaHora({ valor, onCambiar, minimo, error }: PropsCampoFe
   );
 }
 
-function Tarjeta({
+// Tarjeta de fecha u hora; también la usa CampoFranja.
+export function Tarjeta({
   etiqueta,
   icono,
   valor,
   vacio,
   conError,
   onPress,
+  descripcion,
 }: {
   etiqueta: string;
   icono: keyof typeof Ionicons.glyphMap;
@@ -114,10 +116,12 @@ function Tarjeta({
   vacio: boolean;
   conError: boolean;
   onPress: () => void;
+  // Etiqueta para lectores de pantalla; por defecto, "<etiqueta> de salida".
+  descripcion?: string;
 }) {
   return (
     <Pressable
-      accessibilityLabel={`${etiqueta} de salida`}
+      accessibilityLabel={descripcion ?? `${etiqueta} de salida`}
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.tarjeta, conError && styles.tarjetaConError, pressed && styles.presionada]}

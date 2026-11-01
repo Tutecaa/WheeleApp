@@ -44,3 +44,28 @@ export const LONGITUD_MAXIMA_MOTIVO_CANCELACION = 300; // igual que en 005_ajust
 
 // Igual que en validate_trip (004_viajes.sql).
 export const DISTANCIA_MINIMA_ORIGEN_DESTINO_METROS = 100;
+
+// --- Búsqueda por proximidad (RF8) ---
+
+// Radios de tolerancia que puede elegir el pasajero. Deben quedar dentro de
+// los límites de search_trips (009_busqueda_proximidad.sql).
+export const RADIOS_BUSQUEDA_METROS = [250, 500, 1000, 2000] as const;
+export const RADIO_BUSQUEDA_POR_DEFECTO_METROS = 500;
+export const RADIO_BUSQUEDA_MINIMO_METROS = 100;
+export const RADIO_BUSQUEDA_MAXIMO_METROS = 5000;
+
+// Franjas horarias rápidas, en minutos desde la medianoche. El pasajero
+// también puede elegir la hora inicial y final a mano.
+export const FRANJAS_HORARIAS = [
+  { nombre: "Todo el día", desde: 0, hasta: 23 * 60 + 59 },
+  { nombre: "Mañana", desde: 5 * 60, hasta: 12 * 60 },
+  { nombre: "Tarde", desde: 12 * 60, hasta: 18 * 60 },
+  { nombre: "Noche", desde: 18 * 60, hasta: 23 * 60 + 59 },
+] as const;
+
+// --- Foto de perfil (RF1, RF14) ---
+
+// Debe coincidir con el bucket de 009_busqueda_proximidad.sql.
+export const BUCKET_FOTOS_PERFIL = "fotos-perfil";
+export const TAMANO_MAXIMO_FOTO_BYTES = 5 * 1024 * 1024; // 5 MB
+export const TIPOS_FOTO_PERMITIDOS = ["image/jpeg", "image/png", "image/webp"];

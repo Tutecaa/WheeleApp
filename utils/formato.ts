@@ -44,3 +44,11 @@ export function formatearAporte(pesos: number): string {
   if (pesos === 0) return "Sin aporte";
   return `$${pesos.toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
 }
+
+// El día de `fecha` a la hora indicada en minutos desde la medianoche
+// (por ejemplo 390 → 6:30 a. m.). Lo usa la franja horaria de la búsqueda.
+export function fechaConMinutos(fecha: Date, minutos: number): Date {
+  const resultado = new Date(fecha);
+  resultado.setHours(Math.floor(minutos / 60), minutos % 60, 0, 0);
+  return resultado;
+}

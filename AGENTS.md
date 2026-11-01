@@ -95,10 +95,12 @@ wheel-e/
 │   ├── EncabezadoAuth.tsx        ← encabezado verde con el logo de las pantallas de acceso
 │   ├── FormularioViaje.tsx       ← pasos de mapa y datos; lo usan publicar y editar viaje
 │   ├── CampoFechaHora.tsx        ← fecha y hora con el selector nativo (.web.tsx: input del navegador)
+│   ├── CampoFranja.tsx           ← fecha y franja horaria de la búsqueda (.web.tsx: input del navegador)
+│   ├── Avatar.tsx                ← foto de perfil redonda o iniciales
 │   ├── Mapa.tsx                  ← mapa OSM (Leaflet en un WebView) para marcar puntos y dibujar rutas
 │   ├── Mapa.web.tsx              ← el mismo mapa en web, dentro de un iframe
 │   ├── mapaLeaflet.ts            ← página de Leaflet y mensajes que comparten Mapa.tsx y Mapa.web.tsx
-│   ├── TarjetaViaje.tsx          ← la tarjeta que aparece en resultados
+│   ├── TarjetaViaje.tsx          ← tarjetas de "Mis viajes" y de los resultados de búsqueda
 │   └── Estrellas.tsx             ← calificación 1 a 5
 │
 ├── lib/
@@ -129,7 +131,7 @@ wheel-e/
 │       ├── 006_solicitudes.sql
 │       ├── 007_calificaciones.sql
 │       ├── 008_notificaciones.sql
-│       └── 009_busqueda_proximidad.sql   ← función PostGIS de distancia
+│       └── 009_busqueda_proximidad.sql   ← búsqueda PostGIS, detalle para el pasajero, perfil público y fotos (Sprint 3)
 │
 ├── docs/
 │   ├── contexto-proyecto.md      ← contexto, requerimientos y backlog del proyecto
