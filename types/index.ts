@@ -241,3 +241,78 @@ export interface Calificacion {
   comentario?: string;
   fechaCreacion: string;
 }
+
+/**
+ * RF13: Una persona que el usuario puede calificar en un viaje finalizado.
+ */
+export interface PersonaPorCalificar {
+  persona: ResumenPersona;
+  rol: RolEnViaje; // el rol que tuvo esa persona en el viaje
+  // La calificación que ya le dio el usuario, si existe.
+  puntuacion?: number;
+  comentario?: string;
+}
+
+export interface ViajePorCalificar {
+  viajeId: string;
+  origenNombre?: string;
+  destinoNombre?: string;
+  fechaHoraSalida: string;
+  estado: EstadoViaje;
+  // Hasta cuándo se puede calificar (fecha de finalización + plazo).
+  plazoHasta?: string;
+  personas: PersonaPorCalificar[];
+}
+
+/**
+ * RF14: Un comentario recibido, como se ve en el perfil público.
+ */
+export interface Resena {
+  id: string;
+  puntuacion: number;
+  comentario?: string;
+  fecha: string;
+  evaluador: Pick<ResumenPersona, 'id' | 'nombreCompleto' | 'fotoPerfilUrl'>;
+  rolEvaluador: RolEnViaje;
+}
+
+/**
+ * RF15: Notificaciones dentro de la app.
+ */
+export type TipoNotificacion =
+  | 'solicitud_nueva'
+  | 'solicitud_aceptada'
+  | 'solicitud_rechazada'
+  | 'solicitud_retirada'
+  | 'reserva_cancelada'
+  | 'viaje_cancelado'
+  | 'viaje_modificado'
+  | 'recordatorio_salida'
+  | 'calificacion_disponible'
+  | 'habilitacion_aprobada'
+  | 'habilitacion_rechazada';
+
+// Datos del evento con los que la app arma el texto.
+export interface DatosNotificacion {
+  origen?: string | null;
+  destino?: string | null;
+  salida?: string;
+  salida_anterior?: string;
+  pasajero?: string;
+  mensaje?: string | null;
+  motivo?: string | null;
+  poca_antelacion?: boolean;
+  placa?: string;
+  rol?: RolEnViaje;
+}
+
+export interface Notificacion {
+  id: string;
+  tipo: TipoNotificacion;
+  viajeId?: string;
+  solicitudId?: string;
+  vehiculoId?: string;
+  datos: DatosNotificacion;
+  leida: boolean;
+  fecha: string;
+}

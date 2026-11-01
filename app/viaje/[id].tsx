@@ -13,7 +13,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { cancelarViaje, obtenerDetalleViaje } from "@/services/viajes.service";
+import {
+  cancelarViaje,
+  finalizarViaje,
+  iniciarViaje,
+  obtenerDetalleViaje,
+} from "@/services/viajes.service";
 import { obtenerMiSolicitud, obtenerSolicitudesRecibidas } from "@/services/solicitudes.service";
 import { useSesion } from "@/hooks/useSesion";
 import { Avatar } from "@/components/Avatar";
@@ -25,7 +30,11 @@ import { Mapa, type PuntoMapa } from "@/components/Mapa";
 import { PanelSolicitud } from "@/components/PanelSolicitud";
 import { ChipEstado, nombreLugar, salidaVencida } from "@/components/TarjetaViaje";
 import { colores } from "@/constants/colores";
-import { LONGITUD_MAXIMA_MOTIVO_CANCELACION } from "@/constants/config";
+import {
+  HORAS_DESPUES_PARA_INICIAR_VIAJE,
+  LONGITUD_MAXIMA_MOTIVO_CANCELACION,
+  MINUTOS_ANTES_PARA_INICIAR_VIAJE,
+} from "@/constants/config";
 import type { Coordenada, SolicitudCupo, SolicitudRecibida, Viaje } from "@/types";
 import { confirmar } from "@/utils/confirmar";
 import {
@@ -55,6 +64,16 @@ function puntosDelViaje(viaje: Viaje, partida?: Coordenada): PuntoMapa[] {
     );
   }
   return puntos;
+}
+
+// Cuándo puede el conductor iniciar el viaje: desde unos minutos antes de la
+// salida y hasta unas horas después (iguales que en start_trip, 007).
+function ventanaInicio(viaje: Viaje): "antes" | "abierta" | "cerrada" {
+  const salida = new Date(viaje.fechaHoraSalida).getTime();
+  const ahora = Date.now();
+  if (ahora < salida - MINUTOS_ANTES_PARA_INICIAR_VIAJE * 60_000) return "antes";
+  if (ahora > salida + HORAS_DESPUES_PARA_INICIAR_VIAJE * 3_600_000) return "cerrada";
+  return "abierta";
 }
 
 // Punto de partida que llega de la búsqueda como texto; undefined si falta
@@ -92,6 +111,9 @@ export default function DetalleViaje() {
   const [motivo, setMotivo] = useState("");
   const [errorCancelar, setErrorCancelar] = useState("");
   const [procesando, setProcesando] = useState(false);
+  // Iniciar o finalizar el viaje.
+  const [cambiandoEstado, setCambiandoEstado] = useState(false);
+  const [errorEstado, setErrorEstado] = useState("");
 
   const cargar = useCallback(async () => {
     try {
@@ -150,6 +172,37 @@ export default function DetalleViaje() {
     await cargar();
   }
 
+  async function cambiarEstado(accion: "iniciar" | "finalizar") {
+    if (!viaje) return;
+    const iniciar = accion === "iniciar";
+    const ok = await confirmar(
+      iniciar ? "Iniciar viaje" : "Finalizar viaje",
+      iniciar
+        ? "El viaje quedará en curso: ya no podrás editarlo ni cancelarlo, ni aceptar solicitudes pendientes."
+        : "El viaje quedará finalizado y tú y tus pasajeros podrán calificarse.",
+      iniciar ? "Iniciar" : "Finalizar",
+    );
+    if (!ok) return;
+
+    setErrorEstado("");
+    setMensaje("");
+    setCambiandoEstado(true);
+    try {
+      if (iniciar) {
+        await iniciarViaje(viaje.id);
+        setMensaje("¡Buen viaje! El viaje está en curso.");
+      } else {
+        await finalizarViaje(viaje.id);
+        setMensaje("Finalizaste el viaje. Ya puedes calificar a tus pasajeros.");
+      }
+    } catch (estadoError) {
+      setErrorEstado((estadoError as Error).message);
+    } finally {
+      setCambiandoEstado(false);
+    }
+    await cargar();
+  }
+
   if (!viaje) {
     return (
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
@@ -177,6 +230,7 @@ export default function DetalleViaje() {
   const tieneCupo = miSolicitud?.estado === "aceptada" || miSolicitud?.estado === "pendiente";
   const confirmados = recibidas.filter((solicitud) => solicitud.estado === "aceptada");
   const porResponder = recibidas.filter((solicitud) => solicitud.estado === "pendiente").length;
+  const ventana = ventanaInicio(viaje);
   const vehiculo = viaje.vehiculo
     ? [viaje.vehiculo.placa, `${viaje.vehiculo.marca} ${viaje.vehiculo.linea}`.trim(), viaje.vehiculo.color]
         .filter(Boolean)
@@ -214,7 +268,13 @@ export default function DetalleViaje() {
                 titulo="El conductor canceló este viaje"
               />
             ) : null}
-            {esPasajero && viaje.estado !== "cancelado" && vencido ? (
+            {esPasajero && viaje.estado === "en_curso" ? (
+              <Aviso icono="navigate" tipo="info" titulo="El viaje está en curso" />
+            ) : null}
+            {esPasajero && viaje.estado === "finalizado" ? (
+              <Aviso icono="flag" tipo="neutro" titulo="Este viaje finalizó" />
+            ) : null}
+            {esPasajero && viaje.estado === "publicado" && vencido ? (
               <Aviso icono="time" tipo="neutro" titulo="Este viaje ya salió" />
             ) : null}
             {esPasajero && sinCupos && !tieneCupo ? (
@@ -393,13 +453,63 @@ export default function DetalleViaje() {
             {esConductor && viaje.estado === "cancelado" && viaje.motivoCancelacion ? (
               <Text style={styles.nota}>Motivo de la cancelación: {viaje.motivoCancelacion}</Text>
             ) : null}
-            {esConductor && (viaje.estado === "en_curso" || viaje.estado === "finalizado") ? (
-              <Text style={styles.nota}>Este viaje ya inició, así que no se puede modificar ni cancelar.</Text>
+            {esConductor && viaje.estado === "en_curso" ? (
+              <>
+                <Aviso
+                  icono="navigate"
+                  texto="Cuando lleguen al destino, finaliza el viaje para que tú y tus pasajeros puedan calificarse."
+                  tipo="info"
+                  titulo="Viaje en curso"
+                />
+                <Boton
+                  cargando={cambiandoEstado}
+                  onPress={() => cambiarEstado("finalizar")}
+                  titulo="Finalizar viaje"
+                  tituloCargando="Finalizando..."
+                />
+              </>
+            ) : null}
+            {esConductor && viaje.estado === "finalizado" ? (
+              <>
+                <Aviso
+                  icono="flag"
+                  texto={
+                    confirmados.length > 0
+                      ? "Califica a tus pasajeros: tu opinión ayuda a construir la confianza de la comunidad."
+                      : "Este viaje no tuvo pasajeros confirmados."
+                  }
+                  tipo="exito"
+                  titulo="Viaje finalizado"
+                />
+                {confirmados.length > 0 ? (
+                  <Boton
+                    onPress={() => router.push({ pathname: "/calificar/[id]", params: { id: viaje.id } })}
+                    titulo="Calificar a tus pasajeros"
+                  />
+                ) : null}
+              </>
+            ) : null}
+            {modificable && ventana === "antes" ? (
+              <Text style={styles.nota}>
+                Podrás iniciar el viaje desde {MINUTOS_ANTES_PARA_INICIAR_VIAJE} minutos antes de la salida.
+              </Text>
             ) : null}
             {modificable && salidaVencida(viaje) ? (
               <Text style={styles.nota}>
-                La hora de salida ya pasó. Edita el viaje para elegir una nueva fecha o cancélalo.
+                {ventana === "abierta"
+                  ? "La hora de salida ya pasó. Inicia el viaje si ya vas en camino, o edítalo o cancélalo."
+                  : "La hora de salida ya pasó. Edita el viaje para elegir una nueva fecha o cancélalo."}
               </Text>
+            ) : null}
+            {errorEstado ? <Text style={styles.error}>{errorEstado}</Text> : null}
+
+            {modificable && ventana === "abierta" && !cancelando ? (
+              <Boton
+                cargando={cambiandoEstado}
+                onPress={() => cambiarEstado("iniciar")}
+                titulo="Iniciar viaje"
+                tituloCargando="Iniciando..."
+              />
             ) : null}
 
             {modificable && !cancelando ? (
@@ -466,12 +576,14 @@ export default function DetalleViaje() {
 }
 
 const ESTILOS_AVISO = {
+  exito: { fondo: colores.primarioSuave, color: colores.primario },
+  info: { fondo: colores.infoSuave, color: colores.info },
   error: { fondo: colores.errorSuave, color: colores.error },
   aviso: { fondo: colores.avisoFondo, color: colores.avisoTexto },
   neutro: { fondo: colores.borde, color: colores.texto },
 } as const;
 
-// Aviso destacado para el pasajero: viaje cancelado, vencido o sin cupos.
+// Aviso destacado: viaje cancelado, vencido, sin cupos, en curso o finalizado.
 function Aviso({
   titulo,
   texto,

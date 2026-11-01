@@ -10,6 +10,7 @@ import { cambiarFotoPerfil, quitarFotoPerfil } from "@/services/perfiles.service
 import { useSesion } from "@/hooks/useSesion";
 import { Avatar } from "@/components/Avatar";
 import { Boton } from "@/components/Boton";
+import { CampanaNotificaciones } from "@/components/CampanaNotificaciones";
 import { Encabezado } from "@/components/Encabezado";
 import { colores } from "@/constants/colores";
 import { confirmar } from "@/utils/confirmar";
@@ -79,7 +80,7 @@ export default function Perfil() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
-      <Encabezado titulo="Mi perfil" />
+      <Encabezado derecha={<CampanaNotificaciones />} titulo="Mi perfil" />
       <ScrollView contentContainerStyle={styles.container}>
         {perfil ? (
           <View style={styles.tarjeta}>

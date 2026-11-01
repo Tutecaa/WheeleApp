@@ -15,6 +15,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { obtenerMisViajes } from "@/services/viajes.service";
 import { useSesion } from "@/hooks/useSesion";
 import { Boton } from "@/components/Boton";
+import { CampanaNotificaciones } from "@/components/CampanaNotificaciones";
 import { Encabezado } from "@/components/Encabezado";
 import { TarjetaViaje, salidaVencida } from "@/components/TarjetaViaje";
 import { colores } from "@/constants/colores";
@@ -141,22 +142,25 @@ export default function MisViajes() {
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <Encabezado
         derecha={
-          esConductor ? (
-            <Pressable
-              accessibilityLabel={`Solicitudes recibidas${pendientes > 0 ? `, ${pendientes} por responder` : ""}`}
-              accessibilityRole="button"
-              onPress={() => router.push("/solicitudes")}
-              style={({ pressed }) => [styles.solicitudes, pressed && styles.presionado]}
-            >
-              <Ionicons color={colores.primario} name="people-outline" size={16} />
-              <Text style={styles.solicitudesTexto}>Solicitudes</Text>
-              {pendientes > 0 ? (
-                <View style={styles.insignia}>
-                  <Text style={styles.insigniaTexto}>{pendientes > 9 ? "9+" : pendientes}</Text>
-                </View>
-              ) : null}
-            </Pressable>
-          ) : undefined
+          <View style={styles.encabezadoDerecha}>
+            {esConductor ? (
+              <Pressable
+                accessibilityLabel={`Solicitudes recibidas${pendientes > 0 ? `, ${pendientes} por responder` : ""}`}
+                accessibilityRole="button"
+                onPress={() => router.push("/solicitudes")}
+                style={({ pressed }) => [styles.solicitudes, pressed && styles.presionado]}
+              >
+                <Ionicons color={colores.primario} name="people-outline" size={16} />
+                <Text style={styles.solicitudesTexto}>Solicitudes</Text>
+                {pendientes > 0 ? (
+                  <View style={styles.insignia}>
+                    <Text style={styles.insigniaTexto}>{pendientes > 9 ? "9+" : pendientes}</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            ) : null}
+            <CampanaNotificaciones />
+          </View>
         }
         titulo="Mis viajes"
       />
@@ -265,6 +269,7 @@ const styles = StyleSheet.create({
     width: 64,
   },
   vacio: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 14, textAlign: "center" },
+  encabezadoDerecha: { alignItems: "center", flexDirection: "row", gap: 10 },
   solicitudes: {
     alignItems: "center",
     backgroundColor: colores.primarioSuave,

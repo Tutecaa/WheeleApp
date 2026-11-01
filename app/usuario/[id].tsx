@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
+import { obtenerResenas } from "@/services/calificaciones.service";
 import { obtenerPerfilPublico } from "@/services/perfiles.service";
 import { useSesion } from "@/hooks/useSesion";
 import { Avatar } from "@/components/Avatar";
 import { Encabezado } from "@/components/Encabezado";
 import { Estrellas } from "@/components/Estrellas";
 import { colores, degradadoPrimario } from "@/constants/colores";
-import type { PerfilPublico } from "@/types";
+import type { PerfilPublico, Resena } from "@/types";
+import { formatearFecha } from "@/utils/formato";
 
 // "octubre de 2026".
 function formatearMesAnio(iso: string): string {
@@ -24,6 +26,7 @@ export default function PerfilUsuario() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { perfil: miPerfil } = useSesion();
   const [perfil, setPerfil] = useState<PerfilPublico | null>(null);
+  const [resenas, setResenas] = useState<Resena[] | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -34,6 +37,14 @@ export default function PerfilUsuario() {
       })
       .catch((cargaError: Error) => {
         if (activo) setError(cargaError.message);
+      });
+    // Los comentarios completan el perfil: si fallan, se muestra sin ellos.
+    obtenerResenas(id)
+      .then((lista) => {
+        if (activo) setResenas(lista);
+      })
+      .catch(() => {
+        if (activo) setResenas([]);
       });
     return () => {
       activo = false;
@@ -130,16 +141,24 @@ export default function PerfilUsuario() {
           <Text style={styles.miembroTexto}>En WHEEL-E desde {formatearMesAnio(perfil.miembroDesde)}</Text>
         </View>
 
-        <Text style={styles.seccion}>Comentarios</Text>
-        <View style={styles.vacio}>
-          <Ionicons color={colores.primario} name="chatbubbles-outline" size={26} />
-          <Text style={styles.vacioTitulo}>Aún sin comentarios</Text>
-          <Text style={styles.vacioTexto}>
-            {esMiPerfil
-              ? "Cuando otros usuarios te califiquen después de un viaje, sus comentarios aparecerán aquí."
-              : `Cuando otros usuarios califiquen a ${primerNombre} después de un viaje, sus comentarios aparecerán aquí.`}
-          </Text>
-        </View>
+        <Text style={styles.seccion}>
+          Comentarios{resenas && resenas.length > 0 ? ` (${resenas.length})` : ""}
+        </Text>
+        {resenas === null ? (
+          <ActivityIndicator color={colores.primario} style={styles.cargandoResenas} />
+        ) : resenas.length > 0 ? (
+          resenas.map((resena) => <TarjetaResena key={resena.id} resena={resena} />)
+        ) : (
+          <View style={styles.vacio}>
+            <Ionicons color={colores.primario} name="chatbubbles-outline" size={26} />
+            <Text style={styles.vacioTitulo}>Aún sin comentarios</Text>
+            <Text style={styles.vacioTexto}>
+              {esMiPerfil
+                ? "Cuando otros usuarios te califiquen después de un viaje, sus comentarios aparecerán aquí."
+                : `Cuando otros usuarios califiquen a ${primerNombre} después de un viaje, sus comentarios aparecerán aquí.`}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.privacidad}>
           <Ionicons color={colores.textoSecundario} name="lock-closed-outline" size={14} />
@@ -149,6 +168,32 @@ export default function PerfilUsuario() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// Un comentario recibido: quién lo dejó, su nota y cuándo.
+function TarjetaResena({ resena }: { resena: Resena }) {
+  return (
+    <View style={styles.resena}>
+      <Pressable
+        accessibilityHint="Abre su perfil público"
+        accessibilityRole="button"
+        onPress={() => router.push({ pathname: "/usuario/[id]", params: { id: resena.evaluador.id } })}
+        style={({ pressed }) => [styles.resenaAutor, pressed && styles.presionado]}
+      >
+        <Avatar fotoUrl={resena.evaluador.fotoPerfilUrl} nombre={resena.evaluador.nombreCompleto} tamano={36} />
+        <View style={styles.flex}>
+          <Text numberOfLines={1} style={styles.resenaNombre}>
+            {resena.evaluador.nombreCompleto}
+          </Text>
+          <Text style={styles.resenaDetalle}>
+            {resena.rolEvaluador === "conductor" ? "Como conductor" : "Como pasajero"} · {formatearFecha(resena.fecha)}
+          </Text>
+        </View>
+        <Estrellas tamano={13} valor={resena.puntuacion} />
+      </Pressable>
+      {resena.comentario ? <Text style={styles.resenaTexto}>{resena.comentario}</Text> : null}
+    </View>
   );
 }
 
@@ -217,6 +262,21 @@ const styles = StyleSheet.create({
   },
   vacioTitulo: { color: colores.titulo, fontSize: 15, fontWeight: "800", marginTop: 8 },
   vacioTexto: { color: colores.textoSecundario, fontSize: 13, lineHeight: 19, marginTop: 4, textAlign: "center" },
+  flex: { flex: 1 },
+  presionado: { opacity: 0.7 },
+  cargandoResenas: { marginTop: 16 },
+  resena: {
+    backgroundColor: colores.blanco,
+    borderColor: colores.borde,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 10,
+    padding: 14,
+  },
+  resenaAutor: { alignItems: "center", flexDirection: "row", gap: 10 },
+  resenaNombre: { color: colores.titulo, fontSize: 14, fontWeight: "800" },
+  resenaDetalle: { color: colores.textoSecundario, fontSize: 12, marginTop: 1 },
+  resenaTexto: { color: colores.texto, fontSize: 14, lineHeight: 20, marginTop: 10 },
   privacidad: { alignItems: "center", flexDirection: "row", gap: 6, justifyContent: "center", marginTop: 18 },
   privacidadTexto: { color: colores.textoSecundario, flexShrink: 1, fontSize: 12, textAlign: "center" },
   noDisponibleIcono: {

@@ -45,6 +45,17 @@ export function formatearAporte(pesos: number): string {
   return `$${pesos.toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
 }
 
+// "Ahora", "hace 5 min", "hace 3 h", "ayer" o la fecha corta.
+export function formatearTiempoRelativo(iso: string): string {
+  const minutos = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (minutos < 1) return "Ahora";
+  if (minutos < 60) return `hace ${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  if (horas < 24) return `hace ${horas} h`;
+  if (horas < 48) return "ayer";
+  return formatearFecha(iso);
+}
+
 // El día de `fecha` a la hora indicada en minutos desde la medianoche
 // (por ejemplo 390 → 6:30 a. m.). Lo usa la franja horaria de la búsqueda.
 export function fechaConMinutos(fecha: Date, minutos: number): Date {

@@ -7,6 +7,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { buscarViajes } from "@/services/busqueda.service";
 import { useSesion } from "@/hooks/useSesion";
 import { Boton } from "@/components/Boton";
+import { CampanaNotificaciones } from "@/components/CampanaNotificaciones";
 import { CampoFranja } from "@/components/CampoFranja";
 import { ChipEncabezado, Encabezado } from "@/components/Encabezado";
 import { Mapa } from "@/components/Mapa";
@@ -119,7 +120,12 @@ export default function Buscar() {
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <Encabezado
-        derecha={<ChipEncabezado icono="walk-outline" texto={formatearDistancia(radio)} />}
+        derecha={
+          <View style={styles.encabezadoDerecha}>
+            <ChipEncabezado icono="walk-outline" texto={formatearDistancia(radio)} />
+            <CampanaNotificaciones />
+          </View>
+        }
         titulo="Buscar viaje"
       />
 
@@ -319,6 +325,7 @@ function Chip({
 
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colores.fondo, flex: 1 },
+  encabezadoDerecha: { alignItems: "center", flexDirection: "row", gap: 10 },
   zonaMapa: { height: 250 },
   mapa: { backgroundColor: colores.menta, flex: 1 },
   pista: {

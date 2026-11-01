@@ -110,13 +110,15 @@ export function PanelSolicitud({ viaje, solicitud, partida, onCambio }: Props) {
           icono="checkmark-circle"
           texto={
             viaje.estado === "finalizado"
-              ? "Viajaste en este recorrido."
-              : yaInicio
-                ? "Tu cupo estaba confirmado para este viaje."
-                : "El conductor aceptó tu solicitud. Llega al punto de encuentro unos minutos antes de la salida."
+              ? "Viajaste en este recorrido. Cuéntale a la comunidad cómo te fue con el conductor."
+              : viaje.estado === "en_curso"
+                ? "Vas en este viaje. ¡Buen camino!"
+                : yaInicio
+                  ? "Tu cupo estaba confirmado para este viaje."
+                  : "El conductor aceptó tu solicitud. Llega al punto de encuentro unos minutos antes de la salida."
           }
           tipo="exito"
-          titulo="Tienes un cupo confirmado"
+          titulo={viaje.estado === "finalizado" ? "Viajaste como pasajero" : "Tienes un cupo confirmado"}
         />
         {abierto ? (
           <Boton
@@ -125,6 +127,12 @@ export function PanelSolicitud({ viaje, solicitud, partida, onCambio }: Props) {
             titulo="Cancelar reserva"
             tituloCargando="Cancelando..."
             variante="peligro"
+          />
+        ) : null}
+        {viaje.estado === "finalizado" ? (
+          <Boton
+            onPress={() => router.push({ pathname: "/calificar/[id]", params: { id: viaje.id } })}
+            titulo="Calificar al conductor"
           />
         ) : null}
       </View>

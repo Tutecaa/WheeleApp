@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 
+import { NotificacionesProvider } from "@/hooks/useNotificaciones";
 import { SesionProvider, useSesion } from "@/hooks/useSesion";
 
 SplashScreen.preventAutoHideAsync();
@@ -9,7 +10,9 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   return (
     <SesionProvider>
-      <RootNavigator />
+      <NotificacionesProvider>
+        <RootNavigator />
+      </NotificacionesProvider>
     </SesionProvider>
   );
 }
@@ -38,6 +41,8 @@ function RootNavigator() {
         <Stack.Screen name="viaje/editar/[id]" />
         <Stack.Screen name="usuario/[id]" />
         <Stack.Screen name="solicitudes" />
+        <Stack.Screen name="notificaciones" />
+        <Stack.Screen name="calificar/[id]" />
         <Stack.Screen name="conductor/vehiculo" />
         <Stack.Screen name="admin/habilitaciones" />
       </Stack.Protected>

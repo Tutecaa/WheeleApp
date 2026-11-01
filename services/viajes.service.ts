@@ -381,3 +381,20 @@ async function obtenerViajesComoConductor(): Promise<ResumenViaje[]> {
     estado: fila.estado,
   }));
 }
+
+// El conductor inicia el viaje: desde ahí ya no se edita ni se cancela.
+export async function iniciarViaje(viajeId: string): Promise<void> {
+  const { error } = await supabase.rpc("start_trip", { p_viaje_id: viajeId });
+  if (error) {
+    // Mensajes de start_trip (007_calificaciones.sql), ya escritos para el usuario.
+    throw new Error(error.code === "P0001" ? error.message : "No se pudo iniciar el viaje. Intenta de nuevo.");
+  }
+}
+
+// El conductor finaliza el viaje en curso y se abren las calificaciones (RF13).
+export async function finalizarViaje(viajeId: string): Promise<void> {
+  const { error } = await supabase.rpc("finish_trip", { p_viaje_id: viajeId });
+  if (error) {
+    throw new Error(error.code === "P0001" ? error.message : "No se pudo finalizar el viaje. Intenta de nuevo.");
+  }
+}

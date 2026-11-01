@@ -78,3 +78,19 @@ export const LONGITUD_MAXIMA_MOTIVO_RECHAZO_SOLICITUD = 200;
 // Provisional: cancelar una reserva confirmada menos de estas horas antes de
 // la salida queda registrado como "con poca antelación" (igual que en 006).
 export const HORAS_CANCELACION_POCA_ANTELACION = 2;
+
+// --- Iniciar y finalizar un viaje; calificaciones (RF13) ---
+
+// Provisionales (contexto-proyecto.md, sección 17). Iguales que en 007_calificaciones.sql.
+export const MINUTOS_ANTES_PARA_INICIAR_VIAJE = 30;
+export const HORAS_DESPUES_PARA_INICIAR_VIAJE = 12;
+export const DIAS_PLAZO_CALIFICAR = 7;
+export const LONGITUD_MAXIMA_COMENTARIO_CALIFICACION = 300;
+
+// --- Notificaciones (RF15) ---
+
+// Provisional: el recordatorio llega esta cantidad de minutos antes de la
+// salida (igual que en 008_notificaciones.sql).
+export const MINUTOS_RECORDATORIO_SALIDA = 60;
+// Cada cuánto se revisa si hay notificaciones nuevas con la app abierta.
+export const INTERVALO_REVISAR_NOTIFICACIONES_MS = 45 * 1000;

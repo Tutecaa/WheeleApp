@@ -103,6 +103,8 @@ wheel-e/
 │   ├── TarjetaViaje.tsx          ← tarjetas de "Mis viajes" y de los resultados de búsqueda
 │   ├── TarjetaSolicitud.tsx      ← una solicitud recibida por el conductor (aceptar o rechazar)
 │   ├── PanelSolicitud.tsx        ← solicitar, seguir y cancelar un cupo desde el detalle del viaje
+│   ├── TarjetaNotificacion.tsx   ← texto, ícono y destino de cada notificación
+│   ├── CampanaNotificaciones.tsx ← campana del encabezado con las no leídas
 │   └── Estrellas.tsx             ← calificación 1 a 5
 │
 ├── lib/
@@ -118,7 +120,8 @@ wheel-e/
 │   └── config.ts                 ← dominios permitidos, radio por defecto, plazos, etc.
 │
 ├── hooks/
-│   └── useSesion.ts              ← saber en cualquier pantalla quién está logueado
+│   ├── useSesion.ts              ← saber en cualquier pantalla quién está logueado
+│   └── useNotificaciones.ts      ← cuántas notificaciones sin leer hay (campana)
 │
 ├── types/
 │   └── index.ts                  ← tipos del dominio (Usuario, Vehiculo, Viaje, etc.)
@@ -131,7 +134,7 @@ wheel-e/
 │       ├── 004_viajes.sql
 │       ├── 005_ajustes_viajes.sql        ← ajustes a 004 (ya aplicada) para modificar y cancelar
 │       ├── 006_solicitudes.sql
-│       ├── 007_calificaciones.sql
+│       ├── 007_calificaciones.sql        ← iniciar/finalizar viaje, calificaciones y comentarios
 │       ├── 008_notificaciones.sql
 │       └── 009_busqueda_proximidad.sql   ← búsqueda PostGIS, detalle para el pasajero, perfil público y fotos (Sprint 3)
 │
