@@ -2,6 +2,7 @@ import type { PostgrestError } from "@supabase/supabase-js";
 
 import { supabase } from "@/lib/supabase";
 import { urlFotoPerfil } from "@/services/perfiles.service";
+import { contarSolicitudesPendientes, obtenerMisReservas } from "@/services/solicitudes.service";
 import {
   LONGITUD_MAXIMA_MOTIVO_CANCELACION,
   LONGITUD_MAXIMA_NOMBRE_LUGAR,
@@ -335,9 +336,13 @@ type ResumenFila = {
   estado: EstadoViaje;
 };
 
-// RF7: viajes en los que participa el usuario. Por ahora solo como conductor;
-// los viajes como pasajero se agregan con las reservas de cupo (Sprint 4).
+// RF7: viajes en los que participa el usuario, como conductor y como pasajero.
 export async function obtenerMisViajes(): Promise<ResumenViaje[]> {
+  const [comoConductor, comoPasajero] = await Promise.all([obtenerViajesComoConductor(), obtenerMisReservas()]);
+  return [...comoConductor, ...comoPasajero];
+}
+
+async function obtenerViajesComoConductor(): Promise<ResumenViaje[]> {
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) {
     throw new Error("No hay una sesión activa.");
@@ -356,9 +361,14 @@ export async function obtenerMisViajes(): Promise<ResumenViaje[]> {
     throw new Error("No se pudieron cargar tus viajes.");
   }
 
+  const pendientes = await contarSolicitudesPendientes(
+    data.filter((fila) => fila.estado === "publicado").map((fila) => fila.id),
+  );
+
   return data.map((fila) => ({
     id: fila.id,
     rol: "conductor",
+    solicitudesPendientes: pendientes.get(fila.id) ?? 0,
     origenNombre: fila.origen_nombre ?? undefined,
     destinoNombre: fila.destino_nombre ?? undefined,
     numeroParadas: fila.paradas.length,

@@ -101,6 +101,8 @@ wheel-e/
 │   ├── Mapa.web.tsx              ← el mismo mapa en web, dentro de un iframe
 │   ├── mapaLeaflet.ts            ← página de Leaflet y mensajes que comparten Mapa.tsx y Mapa.web.tsx
 │   ├── TarjetaViaje.tsx          ← tarjetas de "Mis viajes" y de los resultados de búsqueda
+│   ├── TarjetaSolicitud.tsx      ← una solicitud recibida por el conductor (aceptar o rechazar)
+│   ├── PanelSolicitud.tsx        ← solicitar, seguir y cancelar un cupo desde el detalle del viaje
 │   └── Estrellas.tsx             ← calificación 1 a 5
 │
 ├── lib/

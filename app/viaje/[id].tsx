@@ -14,6 +14,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { cancelarViaje, obtenerDetalleViaje } from "@/services/viajes.service";
+import { obtenerMiSolicitud, obtenerSolicitudesRecibidas } from "@/services/solicitudes.service";
 import { useSesion } from "@/hooks/useSesion";
 import { Avatar } from "@/components/Avatar";
 import { Boton } from "@/components/Boton";
@@ -21,10 +22,11 @@ import { CampoTexto } from "@/components/CampoTexto";
 import { Encabezado } from "@/components/Encabezado";
 import { Estrellas } from "@/components/Estrellas";
 import { Mapa, type PuntoMapa } from "@/components/Mapa";
+import { PanelSolicitud } from "@/components/PanelSolicitud";
 import { ChipEstado, nombreLugar, salidaVencida } from "@/components/TarjetaViaje";
 import { colores } from "@/constants/colores";
 import { LONGITUD_MAXIMA_MOTIVO_CANCELACION } from "@/constants/config";
-import type { Coordenada, Viaje } from "@/types";
+import type { Coordenada, SolicitudCupo, SolicitudRecibida, Viaje } from "@/types";
 import { confirmar } from "@/utils/confirmar";
 import {
   formatearAporte,
@@ -65,8 +67,9 @@ function aPunto(lat?: string, lng?: string): Coordenada | undefined {
 }
 
 // Detalle de un viaje. El conductor que lo publicó puede modificarlo o
-// cancelarlo mientras no haya iniciado (RF6). El pasajero ve la ruta, qué
-// tan cerca pasa de su punto de partida y los datos públicos del conductor (RF9).
+// cancelarlo mientras no haya iniciado (RF6) y ve sus pasajeros y solicitudes
+// (RF11). El pasajero ve la ruta, qué tan cerca pasa de su punto de partida y
+// los datos públicos del conductor (RF9), y solicita o cancela su cupo (RF10, RF12).
 export default function DetalleViaje() {
   const { id, aviso, lat, lng } = useLocalSearchParams<{
     id: string;
@@ -76,7 +79,12 @@ export default function DetalleViaje() {
   }>();
   const partida = aPunto(lat, lng);
   const { perfil } = useSesion();
+  const perfilId = perfil?.id;
+  const esAdmin = perfil?.rol === "administrador";
   const [viaje, setViaje] = useState<Viaje | null>(null);
+  // Del pasajero: su última solicitud en el viaje. Del conductor: las recibidas.
+  const [miSolicitud, setMiSolicitud] = useState<SolicitudCupo | null>(null);
+  const [recibidas, setRecibidas] = useState<SolicitudRecibida[]>([]);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState(aviso === "publicado" ? "¡Tu viaje quedó publicado!" : "");
 
@@ -87,12 +95,20 @@ export default function DetalleViaje() {
 
   const cargar = useCallback(async () => {
     try {
-      setViaje(await obtenerDetalleViaje(id, aPunto(lat, lng)));
+      const detalle = await obtenerDetalleViaje(id, aPunto(lat, lng));
+      // Las solicitudes completan el detalle: si fallan, el viaje se muestra igual.
+      if (detalle.conductorId === perfilId) {
+        const grupos = await obtenerSolicitudesRecibidas(id).catch(() => []);
+        setRecibidas(grupos[0]?.solicitudes ?? []);
+      } else if (!esAdmin) {
+        setMiSolicitud(await obtenerMiSolicitud(id).catch(() => null));
+      }
+      setViaje(detalle);
       setError("");
     } catch (cargaError) {
       setError((cargaError as Error).message);
     }
-  }, [id, lat, lng]);
+  }, [id, lat, lng, perfilId, esAdmin]);
 
   // Se recarga al volver de editar.
   useFocusEffect(
@@ -158,6 +174,9 @@ export default function DetalleViaje() {
   // y no se puede solicitar.
   const vencido = salidaVencida(viaje) || viaje.estado === "en_curso" || viaje.estado === "finalizado";
   const sinCupos = viaje.estado === "publicado" && !vencido && viaje.cuposDisponibles === 0;
+  const tieneCupo = miSolicitud?.estado === "aceptada" || miSolicitud?.estado === "pendiente";
+  const confirmados = recibidas.filter((solicitud) => solicitud.estado === "aceptada");
+  const porResponder = recibidas.filter((solicitud) => solicitud.estado === "pendiente").length;
   const vehiculo = viaje.vehiculo
     ? [viaje.vehiculo.placa, `${viaje.vehiculo.marca} ${viaje.vehiculo.linea}`.trim(), viaje.vehiculo.color]
         .filter(Boolean)
@@ -198,7 +217,7 @@ export default function DetalleViaje() {
             {esPasajero && viaje.estado !== "cancelado" && vencido ? (
               <Aviso icono="time" tipo="neutro" titulo="Este viaje ya salió" />
             ) : null}
-            {esPasajero && sinCupos ? (
+            {esPasajero && sinCupos && !tieneCupo ? (
               <Aviso
                 icono="people"
                 texto="Busca otro viaje o vuelve más tarde por si se libera un cupo."
@@ -300,18 +319,75 @@ export default function DetalleViaje() {
             ) : null}
 
             {esPasajero ? (
-              <>
-                <Boton
-                  deshabilitado
-                  onPress={() => {}}
-                  titulo={sinCupos ? "Sin cupos disponibles" : "Solicitar cupo"}
-                />
-                {viaje.estado === "publicado" && !vencido && !sinCupos ? (
-                  <Text style={[styles.nota, styles.notaCentrada]}>
-                    Muy pronto podrás solicitar tu cupo desde aquí.
+              <PanelSolicitud onCambio={cargar} partida={partida} solicitud={miSolicitud} viaje={viaje} />
+            ) : null}
+
+            {esConductor && viaje.estado !== "cancelado" ? (
+              <View style={styles.tarjeta}>
+                <View style={styles.pasajerosEncabezado}>
+                  <Text style={styles.filaEtiqueta}>Pasajeros confirmados</Text>
+                  <Text style={styles.pasajerosConteo}>
+                    {confirmados.length} de {viaje.cuposTotales}
                   </Text>
-                ) : null}
-              </>
+                </View>
+                {confirmados.length === 0 ? (
+                  <Text style={styles.pasajerosVacio}>Aún no tienes pasajeros confirmados.</Text>
+                ) : (
+                  confirmados.map((solicitud) => (
+                    <Pressable
+                      accessibilityHint="Abre su perfil público"
+                      accessibilityRole="button"
+                      key={solicitud.id}
+                      onPress={() =>
+                        router.push({ pathname: "/usuario/[id]", params: { id: solicitud.pasajero.id } })
+                      }
+                      style={({ pressed }) => [styles.pasajero, pressed && styles.presionado]}
+                    >
+                      <Avatar
+                        fotoUrl={solicitud.pasajero.fotoPerfilUrl}
+                        nombre={solicitud.pasajero.nombreCompleto}
+                        tamano={36}
+                      />
+                      <View style={styles.flex}>
+                        <Text numberOfLines={1} style={styles.pasajeroNombre}>
+                          {solicitud.pasajero.nombreCompleto}
+                        </Text>
+                        {solicitud.distanciaProximidadMetros !== undefined ? (
+                          <Text style={styles.pasajeroDetalle}>
+                            Sale a {formatearDistancia(solicitud.distanciaProximidadMetros)} de tu ruta
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Ionicons color={colores.placeholder} name="chevron-forward" size={18} />
+                    </Pressable>
+                  ))
+                )}
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => router.push({ pathname: "/solicitudes", params: { viajeId: viaje.id } })}
+                  style={({ pressed }) => [
+                    styles.verSolicitudes,
+                    porResponder > 0 && styles.verSolicitudesDestacado,
+                    pressed && styles.presionado,
+                  ]}
+                >
+                  <Ionicons
+                    color={porResponder > 0 ? colores.avisoTexto : colores.primario}
+                    name={porResponder > 0 ? "notifications" : "people-outline"}
+                    size={16}
+                  />
+                  <Text style={[styles.verSolicitudesTexto, porResponder > 0 && styles.verSolicitudesTextoDestacado]}>
+                    {porResponder > 0
+                      ? `${porResponder} solicitud${porResponder === 1 ? "" : "es"} por responder`
+                      : "Ver solicitudes"}
+                  </Text>
+                  <Ionicons
+                    color={porResponder > 0 ? colores.avisoTexto : colores.primario}
+                    name="chevron-forward"
+                    size={16}
+                  />
+                </Pressable>
+              </View>
             ) : null}
 
             {esConductor && viaje.estado === "cancelado" && viaje.motivoCancelacion ? (
@@ -487,7 +563,6 @@ const styles = StyleSheet.create({
   filaEtiqueta: etiquetaMayuscula,
   filaValor: { color: colores.titulo, fontSize: 15, fontWeight: "600", marginTop: 2 },
   nota: { color: colores.textoSecundario, fontSize: 14, lineHeight: 20, marginTop: 6 },
-  notaCentrada: { marginTop: 10, textAlign: "center" },
   presionado: { opacity: 0.7 },
   aviso: {
     alignItems: "flex-start",
@@ -522,6 +597,32 @@ const styles = StyleSheet.create({
   conductorNombre: { color: colores.titulo, fontSize: 16, fontWeight: "800", marginTop: 2 },
   conductorPrograma: { color: colores.textoSecundario, fontSize: 13, marginTop: 1 },
   conductorCalificacion: { marginTop: 6 },
+  pasajerosEncabezado: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingBottom: 4,
+    paddingTop: 8,
+  },
+  pasajerosConteo: { color: colores.primario, fontSize: 13, fontWeight: "800" },
+  pasajerosVacio: { color: colores.textoSecundario, fontSize: 14, paddingVertical: 8 },
+  pasajero: { alignItems: "center", flexDirection: "row", gap: 10, paddingVertical: 8 },
+  pasajeroNombre: { color: colores.titulo, fontSize: 15, fontWeight: "700" },
+  pasajeroDetalle: { color: colores.info, fontSize: 12, fontWeight: "600", marginTop: 1 },
+  verSolicitudes: {
+    alignItems: "center",
+    backgroundColor: colores.primarioSuave,
+    borderRadius: 12,
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
+  verSolicitudesDestacado: { backgroundColor: colores.avisoFondo },
+  verSolicitudesTexto: { color: colores.primario, flex: 1, fontSize: 14, fontWeight: "800" },
+  verSolicitudesTextoDestacado: { color: colores.avisoTexto },
   cancelacion: {
     backgroundColor: colores.blanco,
     borderColor: colores.borde,

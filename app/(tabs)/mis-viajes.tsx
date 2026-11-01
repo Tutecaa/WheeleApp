@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -23,9 +23,21 @@ import type { ResumenViaje, RolEnViaje } from "@/types";
 type Periodo = "proximos" | "historial";
 
 // Próximos: los que aún se van a realizar o están en curso. Historial: los
-// finalizados, cancelados y los publicados cuya salida ya pasó.
+// finalizados, cancelados y los publicados cuya salida ya pasó. Como
+// pasajero, además, la solicitud debe seguir pendiente o confirmada.
 function esProximo(viaje: ResumenViaje): boolean {
-  return viaje.estado === "en_curso" || (viaje.estado === "publicado" && !salidaVencida(viaje));
+  const vigente = viaje.estado === "en_curso" || (viaje.estado === "publicado" && !salidaVencida(viaje));
+  if (viaje.rol === "conductor") return vigente;
+  return vigente && (viaje.solicitud?.estado === "pendiente" || viaje.solicitud?.estado === "aceptada");
+}
+
+// Pestaña de rol con la que se abre la lista: la de pasajero si solo tiene
+// viajes próximos como pasajero o si nunca ha publicado un viaje.
+function rolInicial(lista: ResumenViaje[]): RolEnViaje {
+  const proximos = lista.filter(esProximo);
+  if (proximos.some((viaje) => viaje.rol === "conductor")) return "conductor";
+  if (proximos.some((viaje) => viaje.rol === "pasajero")) return "pasajero";
+  return lista.some((viaje) => viaje.rol === "conductor") ? "conductor" : "pasajero";
 }
 
 const VACIO: Record<Periodo, Record<RolEnViaje, string>> = {
@@ -50,6 +62,14 @@ export default function MisViajes() {
   const [error, setError] = useState("");
   const [periodo, setPeriodo] = useState<Periodo>("proximos");
   const [rol, setRol] = useState<RolEnViaje>("conductor");
+  // La primera vez se abre la pestaña de rol que tiene viajes próximos; luego
+  // se respeta la que elija el usuario.
+  const rolDecidido = useRef(false);
+
+  function cambiarRol(nuevo: RolEnViaje) {
+    rolDecidido.current = true;
+    setRol(nuevo);
+  }
 
   const cargar = useCallback(async () => {
     try {
@@ -68,6 +88,10 @@ export default function MisViajes() {
       obtenerMisViajes()
         .then((lista) => {
           if (!activo) return;
+          if (!rolDecidido.current) {
+            rolDecidido.current = true;
+            setRol(rolInicial(lista));
+          }
           setViajes(lista);
           setError("");
         })
@@ -89,6 +113,22 @@ export default function MisViajes() {
     setRefrescando(false);
   }
 
+  const pendientes = viajes.reduce(
+    (total, viaje) => total + (viaje.rol === "conductor" && esProximo(viaje) ? (viaje.solicitudesPendientes ?? 0) : 0),
+    0,
+  );
+  const esConductor = viajes.some((viaje) => viaje.rol === "conductor");
+
+  function abrir(viaje: ResumenViaje) {
+    const partida = viaje.solicitud?.puntoPartida;
+    router.push({
+      pathname: "/viaje/[id]",
+      params: partida
+        ? { id: viaje.id, lat: String(partida.latitud), lng: String(partida.longitud) }
+        : { id: viaje.id },
+    });
+  }
+
   const filtrados = viajes
     .filter((viaje) => viaje.rol === rol && esProximo(viaje) === (periodo === "proximos"))
     .sort((a, b) => {
@@ -99,7 +139,27 @@ export default function MisViajes() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
-      <Encabezado titulo="Mis viajes" />
+      <Encabezado
+        derecha={
+          esConductor ? (
+            <Pressable
+              accessibilityLabel={`Solicitudes recibidas${pendientes > 0 ? `, ${pendientes} por responder` : ""}`}
+              accessibilityRole="button"
+              onPress={() => router.push("/solicitudes")}
+              style={({ pressed }) => [styles.solicitudes, pressed && styles.presionado]}
+            >
+              <Ionicons color={colores.primario} name="people-outline" size={16} />
+              <Text style={styles.solicitudesTexto}>Solicitudes</Text>
+              {pendientes > 0 ? (
+                <View style={styles.insignia}>
+                  <Text style={styles.insigniaTexto}>{pendientes > 9 ? "9+" : pendientes}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          ) : undefined
+        }
+        titulo="Mis viajes"
+      />
       <ScrollView
         contentContainerStyle={styles.container}
         refreshControl={
@@ -115,7 +175,7 @@ export default function MisViajes() {
           valor={periodo}
         />
         <Selector
-          onCambiar={setRol}
+          onCambiar={cambiarRol}
           opciones={[
             { valor: "conductor", texto: "Como conductor" },
             { valor: "pasajero", texto: "Como pasajero" },
@@ -136,14 +196,13 @@ export default function MisViajes() {
             {rol === "conductor" && periodo === "proximos" && !esAdmin ? (
               <Boton onPress={() => router.push("/publicar")} titulo="Publicar un viaje" variante="secundario" />
             ) : null}
+            {rol === "pasajero" && periodo === "proximos" && !esAdmin ? (
+              <Boton onPress={() => router.push("/buscar")} titulo="Buscar un viaje" variante="secundario" />
+            ) : null}
           </View>
         ) : (
           filtrados.map((viaje) => (
-            <TarjetaViaje
-              key={viaje.id}
-              onPress={() => router.push({ pathname: "/viaje/[id]", params: { id: viaje.id } })}
-              viaje={viaje}
-            />
+            <TarjetaViaje key={`${viaje.rol}-${viaje.id}`} onPress={() => abrir(viaje)} viaje={viaje} />
           ))
         )}
       </ScrollView>
@@ -206,4 +265,25 @@ const styles = StyleSheet.create({
     width: 64,
   },
   vacio: { color: colores.textoSecundario, fontSize: 15, lineHeight: 22, marginTop: 14, textAlign: "center" },
+  solicitudes: {
+    alignItems: "center",
+    backgroundColor: colores.primarioSuave,
+    borderRadius: 16,
+    flexDirection: "row",
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+  solicitudesTexto: { color: colores.primario, fontSize: 13, fontWeight: "800" },
+  insignia: {
+    alignItems: "center",
+    backgroundColor: colores.acento,
+    borderRadius: 9,
+    height: 18,
+    justifyContent: "center",
+    minWidth: 18,
+    paddingHorizontal: 4,
+  },
+  insigniaTexto: { color: colores.blanco, fontSize: 11, fontWeight: "800" },
+  presionado: { opacity: 0.7 },
 });

@@ -4,7 +4,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Avatar } from "@/components/Avatar";
 import { Estrellas } from "@/components/Estrellas";
 import { colores } from "@/constants/colores";
-import type { EstadoViaje, ResultadoBusqueda, ResumenViaje } from "@/types";
+import type {
+  CanceladaPor,
+  EstadoSolicitudCupo,
+  EstadoViaje,
+  ResultadoBusqueda,
+  ResumenViaje,
+} from "@/types";
 import {
   formatearAporte,
   formatearDia,
@@ -50,13 +56,63 @@ export function ChipEstado({ viaje }: { viaje: { estado: EstadoViaje; fechaHoraS
   );
 }
 
+const ESTADOS_SOLICITUD: Record<EstadoSolicitudCupo, EtiquetaEstado> = {
+  pendiente: { texto: "Pendiente", color: colores.avisoTexto, fondo: colores.avisoFondo },
+  aceptada: { texto: "Confirmada", color: colores.primario, fondo: colores.primarioSuave },
+  rechazada: { texto: "Rechazada", color: colores.error, fondo: colores.errorSuave },
+  cancelada: { texto: "Cancelada", color: colores.textoSecundario, fondo: colores.borde },
+};
+
+// Estado de una solicitud de cupo (RF10 a RF12). Si se cerró porque el
+// conductor canceló el viaje, se dice así.
+export function etiquetaSolicitud(solicitud: {
+  estado: EstadoSolicitudCupo;
+  canceladaPor?: CanceladaPor;
+}): EtiquetaEstado {
+  if (solicitud.estado === "cancelada" && solicitud.canceladaPor === "viaje") return ESTADOS.cancelado;
+  return ESTADOS_SOLICITUD[solicitud.estado];
+}
+
+export function ChipSolicitud({
+  solicitud,
+}: {
+  solicitud: { estado: EstadoSolicitudCupo; canceladaPor?: CanceladaPor };
+}) {
+  const estado = etiquetaSolicitud(solicitud);
+  return (
+    <Text style={[styles.estado, { backgroundColor: estado.fondo, color: estado.color }]}>
+      {estado.texto}
+    </Text>
+  );
+}
+
+// Para el pasajero cuenta su solicitud; si ya está confirmada y el viaje
+// avanzó (en curso, finalizado, vencido), cuenta el estado del viaje.
+function ChipPasajero({ viaje }: { viaje: ResumenViaje }) {
+  const solicitud = viaje.solicitud;
+  if (!solicitud) return <ChipEstado viaje={viaje} />;
+  if (solicitud.estado === "aceptada" && (viaje.estado !== "publicado" || salidaVencida(viaje))) {
+    return <ChipEstado viaje={viaje} />;
+  }
+  if (solicitud.estado === "pendiente" && salidaVencida(viaje)) {
+    return (
+      <Text style={[styles.estado, { backgroundColor: SALIDA_VENCIDA.fondo, color: SALIDA_VENCIDA.color }]}>
+        Sin respuesta
+      </Text>
+    );
+  }
+  return <ChipSolicitud solicitud={solicitud} />;
+}
+
 type Props = {
   viaje: ResumenViaje;
   onPress: () => void;
 };
 
-// La tarjeta de un viaje en "Mis viajes" (RF7).
+// La tarjeta de un viaje en "Mis viajes" (RF7). Como conductor muestra las
+// solicitudes por responder; como pasajero, el estado de su solicitud y quién conduce.
 export function TarjetaViaje({ viaje, onPress }: Props) {
+  const pendientes = viaje.solicitudesPendientes ?? 0;
   return (
     <Pressable
       accessibilityRole="button"
@@ -76,7 +132,7 @@ export function TarjetaViaje({ viaje, onPress }: Props) {
           <Text numberOfLines={1} style={styles.ruta}>
             {nombreLugar(viaje.origenNombre)} → {nombreLugar(viaje.destinoNombre)}
           </Text>
-          <ChipEstado viaje={viaje} />
+          {viaje.rol === "pasajero" ? <ChipPasajero viaje={viaje} /> : <ChipEstado viaje={viaje} />}
         </View>
         <Text style={styles.subtitulo}>
           {viaje.rol === "conductor" ? "Conductor" : "Pasajero"} · {formatearDia(viaje.fechaHoraSalida)}
@@ -91,6 +147,28 @@ export function TarjetaViaje({ viaje, onPress }: Props) {
           <Text style={styles.aporte}>{formatearAporte(viaje.aporteSugerido)}</Text>
           <Text style={styles.distancia}>{formatearDistancia(viaje.distanciaMetros)}</Text>
         </View>
+
+        {viaje.rol === "conductor" && pendientes > 0 ? (
+          <View style={styles.pendientes}>
+            <Ionicons color={colores.avisoTexto} name="notifications" size={14} />
+            <Text style={styles.pendientesTexto}>
+              {pendientes} solicitud{pendientes === 1 ? "" : "es"} por responder
+            </Text>
+          </View>
+        ) : null}
+
+        {viaje.rol === "pasajero" && viaje.conductor ? (
+          <View style={styles.conduce}>
+            <Avatar fotoUrl={viaje.conductor.fotoPerfilUrl} nombre={viaje.conductor.nombreCompleto} tamano={22} />
+            <Text numberOfLines={1} style={styles.conduceTexto}>
+              Conduce {viaje.conductor.nombreCompleto}
+              {viaje.placaVehiculo ? ` · ${viaje.placaVehiculo}` : ""}
+            </Text>
+          </View>
+        ) : null}
+        {viaje.solicitud?.canceladaConPocaAntelacion ? (
+          <Text style={styles.pocaAntelacion}>Cancelaste con poca antelación</Text>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -200,6 +278,21 @@ const styles = StyleSheet.create({
   datoTexto: { color: colores.texto, fontSize: 13, fontWeight: "600" },
   aporte: { color: colores.acento, fontSize: 13, fontWeight: "800" },
   distancia: { color: colores.textoSecundario, fontSize: 12, marginLeft: "auto" },
+  pendientes: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: colores.avisoFondo,
+    borderRadius: 10,
+    flexDirection: "row",
+    gap: 5,
+    marginTop: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  pendientesTexto: { color: colores.avisoTexto, fontSize: 12, fontWeight: "800" },
+  conduce: { alignItems: "center", flexDirection: "row", gap: 7, marginTop: 10 },
+  conduceTexto: { color: colores.textoSecundario, flex: 1, fontSize: 12, fontWeight: "600" },
+  pocaAntelacion: { color: colores.avisoTexto, fontSize: 12, fontWeight: "700", marginTop: 6 },
   resultado: { flexDirection: "column", gap: 0, padding: 0 },
   resultadoArriba: { flexDirection: "row", gap: 12, padding: 14 },
   cercania: {

@@ -68,12 +68,15 @@ export interface PerfilPublico {
   miembroDesde: string;
 }
 
-// El conductor tal como se muestra en un resultado o en el detalle de un viaje.
-export type ConductorViaje = Pick<
+// Una persona tal como se muestra en una tarjeta: el conductor en un resultado
+// o en el detalle de un viaje, o el pasajero en una solicitud.
+export type ResumenPersona = Pick<
   PerfilPublico,
   'id' | 'nombreCompleto' | 'fotoPerfilUrl' | 'promedioCalificacion'
 > &
   Partial<Pick<PerfilPublico, 'programaAcademico' | 'totalViajes'>>;
+
+export type ConductorViaje = ResumenPersona;
 
 /**
  * RF3, RF16: Registro de Vehículos y Habilitación de Conductores
@@ -179,21 +182,51 @@ export interface ResumenViaje {
   distanciaMetros: number;
   duracionSegundos: number;
   estado: EstadoViaje;
+  // Como conductor: solicitudes que esperan respuesta (RF11).
+  solicitudesPendientes?: number;
+  // Como pasajero: la solicitud o reserva en ese viaje y su conductor (RF10, RF12).
+  solicitud?: SolicitudCupo;
+  conductor?: ResumenPersona;
+  // Solo con la reserva confirmada, para reconocer el carro.
+  placaVehiculo?: string;
 }
 
 /**
  * RF10, RF11, RF12: Reserva, Solicitud y Cancelación de Cupos
  */
+// 'viaje' si se cerró porque el conductor canceló el viaje.
+export type CanceladaPor = 'pasajero' | 'viaje';
+
 export interface SolicitudCupo {
   id: string;
   viajeId: string;
-  pasajeroId: string;
-  puntoPartidaPasajero: Ubicacion;
+  pasajeroId?: string;
+  puntoPartida?: Coordenada; // Con el que el pasajero encontró el viaje
   distanciaProximidadMetros?: number; // Calculada respecto al trazado de la ruta
-  mensajeOpcional?: string;
+  mensaje?: string;
   estado: EstadoSolicitudCupo;
+  motivoRechazo?: string;
+  canceladaPor?: CanceladaPor;
+  canceladaConPocaAntelacion?: boolean;
   fechaSolicitud: string;
   fechaRespuesta?: string;
+}
+
+// RF11: una solicitud recibida por el conductor, con el perfil público del pasajero.
+export interface SolicitudRecibida extends SolicitudCupo {
+  pasajero: ResumenPersona;
+}
+
+// RF11: las solicitudes agrupadas por viaje.
+export interface ViajeConSolicitudes {
+  viajeId: string;
+  origenNombre?: string;
+  destinoNombre?: string;
+  fechaHoraSalida: string;
+  cuposTotales: number;
+  cuposDisponibles: number;
+  estado: EstadoViaje;
+  solicitudes: SolicitudRecibida[];
 }
 
 /**

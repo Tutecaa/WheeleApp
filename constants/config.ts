@@ -69,3 +69,12 @@ export const FRANJAS_HORARIAS = [
 export const BUCKET_FOTOS_PERFIL = "fotos-perfil";
 export const TAMANO_MAXIMO_FOTO_BYTES = 5 * 1024 * 1024; // 5 MB
 export const TIPOS_FOTO_PERMITIDOS = ["image/jpeg", "image/png", "image/webp"];
+
+// --- Solicitudes de cupo (RF10, RF11, RF12) ---
+
+// Deben coincidir con los checks de 006_solicitudes.sql.
+export const LONGITUD_MAXIMA_MENSAJE_SOLICITUD = 200;
+export const LONGITUD_MAXIMA_MOTIVO_RECHAZO_SOLICITUD = 200;
+// Provisional: cancelar una reserva confirmada menos de estas horas antes de
+// la salida queda registrado como "con poca antelación" (igual que en 006).
+export const HORAS_CANCELACION_POCA_ANTELACION = 2;
